@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
@@ -22,13 +23,15 @@ func init() {
 }
 
 type statusOutput struct {
-	ConfigExists bool             `json:"config_exists"`
-	ClientID     string           `json:"client_id,omitempty"`
-	Accounts     []accountStatus  `json:"accounts"`
+	ConfigExists bool            `json:"config_exists"`
+	ClientID     string          `json:"client_id,omitempty"`
+	DefaultFlow  string          `json:"default_auth_flow,omitempty"`
+	Accounts     []accountStatus `json:"accounts"`
 }
 
 type accountStatus struct {
 	Alias     string `json:"alias"`
+	Flow      string `json:"flow"`
 	Email     string `json:"email"`
 	ExpiresAt string `json:"expires_at"`
 	Valid     bool   `json:"valid"`
@@ -39,12 +42,19 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 	status := statusOutput{}
 
 	// Check config
-	config, err := auth.LoadConfig()
+	config, err := auth.LoadConfigOptional()
 	if err != nil {
 		status.ConfigExists = false
-	} else {
+	} else if config != nil {
 		status.ConfigExists = true
-		status.ClientID = config.ClientID[:8] + "..." // Partially mask
+		status.DefaultFlow = config.DefaultAuthFlow.String()
+		if config.ClientID != "" {
+			if len(config.ClientID) > 8 {
+				status.ClientID = config.ClientID[:8] + "..." // Partially mask
+			} else {
+				status.ClientID = config.ClientID
+			}
+		}
 	}
 
 	// List accounts
@@ -57,6 +67,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 	for _, acc := range accounts {
 		as := accountStatus{
 			Alias: acc.Alias,
+			Flow:  acc.Flow.String(),
 			Email: acc.Email,
 		}
 
@@ -64,17 +75,15 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			as.Error = err.Error()
 		} else {
-			as.ExpiresAt = time.Unix(token.ExpiresAt, 0).Format(time.RFC3339)
+			as.ExpiresAt = time.Unix(token.ExpiresAt, 0).Local().Format("Jan 02 15:04 MST")
 
-			// Try to validate token (or refresh if needed)
-			if status.ConfigExists {
-				_, err := auth.GetValidToken(ctx, acc.Alias)
-				if err != nil {
-					as.Valid = false
-					as.Error = err.Error()
-				} else {
-					as.Valid = true
-				}
+			// Validate token (or refresh if needed). This works for both legacy and msal-office flows.
+			_, err := auth.GetValidToken(ctx, acc.Alias)
+			if err != nil {
+				as.Valid = false
+				as.Error = err.Error()
+			} else {
+				as.Valid = true
 			}
 		}
 
@@ -90,12 +99,15 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 
 	// Table format
 	if !status.ConfigExists {
-		Infof("Configuration: NOT SET")
-		Infof("Run 'msgcli auth setup' to configure")
-		return nil
+		fmt.Println("Configuration: NOT SET (default flow: legacy)")
+	} else {
+		if status.ClientID == "" {
+			fmt.Printf("Configuration: OK (client_id: unset)\n")
+		} else {
+			fmt.Printf("Configuration: OK (client_id: %s)\n", status.ClientID)
+		}
+		fmt.Printf("Default flow: %s\n", status.DefaultFlow)
 	}
-
-	fmt.Printf("Configuration: OK (client_id: %s)\n", status.ClientID)
 	fmt.Println()
 
 	if len(status.Accounts) == 0 {
@@ -103,21 +115,25 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("%-12s %-30s %-10s %s\n", "ALIAS", "EMAIL", "VALID", "EXPIRES")
-	fmt.Printf("%-12s %-30s %-10s %s\n", "-----", "-----", "-----", "-------")
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "ALIAS\tFLOW\tEMAIL\tVALID\tEXPIRES")
+	fmt.Fprintln(w, "-----\t----\t-----\t-----\t-------")
 	for _, acc := range status.Accounts {
-		validStr := "✗"
+		validStr := "no"
 		if acc.Valid {
-			validStr = "✓"
+			validStr = "yes"
 		}
 		expiry := acc.ExpiresAt
 		if expiry == "" {
 			expiry = "unknown"
 		}
-		fmt.Printf("%-12s %-30s %-10s %s\n", acc.Alias, acc.Email, validStr, expiry)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", acc.Alias, acc.Flow, acc.Email, validStr, expiry)
 		if acc.Error != "" {
-			fmt.Printf("             Error: %s\n", acc.Error)
+			fmt.Fprintf(w, "\t\t\t\tError: %s\n", acc.Error)
 		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
 	}
 
 	return nil

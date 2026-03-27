@@ -28,12 +28,12 @@ $ msgcli mail list -o json | jq '.[0].subject'
 - **Agent-first** — JSON output, `--no-input` flag, clean stdout/stderr separation
 - **Multi-account** — Switch between personal and work Microsoft accounts
 - **Secure** — Tokens stored in OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
-- **Simple auth** — Device code flow, no client secrets, 5-minute setup
+- **Flexible auth** — Legacy Azure app flow or macOS first-party flow
 - **Full CRUD** — Mail and Calendar operations for real workflows
 
 ## Quick Start
 
-### 1. Azure App Registration (5 minutes, one-time)
+### 1. Azure App Registration (Legacy Flow Only, 5 minutes)
 
 1. Open [Azure Portal → App registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
 2. Click **"New registration"**
@@ -45,7 +45,8 @@ $ msgcli mail list -o json | jq '.[0].subject'
 5. Copy the **Application (client) ID**
 6. Go to **Authentication** → Enable **"Allow public client flows"** → Save
 
-> 📖 Detailed guide with screenshots: [docs/SETUP.md](docs/SETUP.md)
+> 📖 Detailed guide with screenshots: [docs/SETUP.md](docs/SETUP.md)  
+> If you use `msal-office`, you can skip this Azure app registration step.
 
 ### 2. Install
 
@@ -62,16 +63,28 @@ make build
 
 ### 3. Authenticate
 
+Option A: Legacy flow (cross-platform)
+
 ```bash
 # Store your client ID (one-time)
-msgcli auth setup
+msgcli auth setup --default-flow legacy
 # Enter client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 # Add an account
-msgcli auth add personal
+msgcli auth add personal --flow legacy
 # To sign in, open a browser and go to:
 #   https://microsoft.com/devicelogin
 # Enter the code: ABCD1234
+```
+
+Option B: msal-office flow (macOS only)
+
+```bash
+# Set first-party flow as default (optional)
+msgcli auth setup --default-flow msal-office
+
+# Add account using OneAuth tenant discovery
+msgcli auth add work --flow msal-office --email "you@company.com"
 ```
 
 ### 4. Use It
@@ -99,11 +112,16 @@ msgcli calendar availability --emails "colleague@company.com" --start "2024-01-2
 
 | Command | Description |
 |---------|-------------|
-| `msgcli auth setup` | Store Azure client ID (one-time) |
-| `msgcli auth add <alias>` | Add account via device code flow |
+| `msgcli auth setup [--default-flow ...]` | Configure default auth flow and optional legacy client ID |
+| `msgcli auth add <alias> --flow legacy|msal-office` | Add account via selected auth flow |
+| `msgcli auth refresh [alias] --flow legacy|msal-office` | Force-refresh tokens for an account |
 | `msgcli auth list` | List configured accounts |
 | `msgcli auth status` | Show auth status and token validity |
 | `msgcli auth remove <alias>` | Remove an account |
+
+Flow notes:
+- `legacy`: requires Azure app `client_id` (from config or `MSGCLI_CLIENT_ID`)
+- `msal-office`: macOS-only; supports `--email` account targeting during `auth add`
 
 ### Mail
 
@@ -181,8 +199,8 @@ msgcli mail list -o json && echo "Success" || echo "Failed"
 
 ```bash
 # Add multiple accounts
-msgcli auth add personal    # @outlook.com
-msgcli auth add work        # @company.com
+msgcli auth add personal --flow legacy
+msgcli auth add work --flow msal-office --email "you@company.com"
 
 # Use specific account
 msgcli mail list -a personal
@@ -197,6 +215,7 @@ msgcli auth status
 | Variable | Description |
 |----------|-------------|
 | `MSGCLI_CLIENT_ID` | Azure client ID (alternative to `auth setup`) |
+| `MSGCLI_AUTH_FLOW` | Default auth flow override (`legacy` or `msal-office`) |
 | `MSGCLI_KEYRING_PASSWORD` | Keyring password for headless/CI environments |
 
 ## Building
@@ -211,6 +230,8 @@ make release    # Cross-compile for all platforms
 ## How It Works
 
 1. **Auth**: Device code flow (no client secret needed) — you authenticate in a browser, msgcli stores refresh tokens in your OS keychain
+   - **Legacy**: custom Azure app + keyring token storage
+   - **msal-office**: first-party client + macOS OneAuth tenant discovery + secure token files
 2. **API**: Direct Microsoft Graph API calls with automatic token refresh
 3. **Output**: JSON for machines, tables for humans (auto-detected based on TTY)
 

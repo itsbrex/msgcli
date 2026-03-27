@@ -3,8 +3,10 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -12,9 +14,12 @@ const (
 	configFileName = "config.json"
 )
 
+var ErrConfigNotFound = errors.New("config not found")
+
 // Config holds the application configuration
 type Config struct {
-	ClientID string `json:"client_id"`
+	ClientID        string   `json:"client_id,omitempty"`
+	DefaultAuthFlow AuthFlow `json:"default_auth_flow,omitempty"`
 }
 
 // GetConfigDir returns the path to the config directory
@@ -45,7 +50,7 @@ func LoadConfig() (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New("config not found - run 'msgcli auth setup' first")
+			return nil, fmt.Errorf("%w - run 'msgcli auth setup' first", ErrConfigNotFound)
 		}
 		return nil, err
 	}
@@ -55,15 +60,43 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	if config.ClientID == "" {
-		return nil, errors.New("client_id not configured - run 'msgcli auth setup' first")
+	if strings.TrimSpace(config.DefaultAuthFlow.String()) == "" {
+		config.DefaultAuthFlow = FlowLegacy
+	} else {
+		normalizedFlow, err := ParseAuthFlow(config.DefaultAuthFlow.String())
+		if err != nil {
+			return nil, fmt.Errorf("invalid default_auth_flow in config: %w", err)
+		}
+		config.DefaultAuthFlow = normalizedFlow
 	}
 
 	return &config, nil
 }
 
+// LoadConfigOptional loads config when present; returns nil,nil when not configured.
+func LoadConfigOptional() (*Config, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		if errors.Is(err, ErrConfigNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return config, nil
+}
+
 // SaveConfig saves the configuration to disk
 func SaveConfig(config *Config) error {
+	if config == nil {
+		return errors.New("config cannot be nil")
+	}
+	if strings.TrimSpace(config.DefaultAuthFlow.String()) == "" {
+		config.DefaultAuthFlow = FlowLegacy
+	}
+	if err := config.DefaultAuthFlow.Validate(); err != nil {
+		return err
+	}
+
 	dir, err := GetConfigDir()
 	if err != nil {
 		return err

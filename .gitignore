@@ -27,3 +27,5 @@ Thumbs.db
 
 # Config (contains client ID - not secret but user-specific)
 # Users should not commit their personal config
+.env
+PLAN.md
