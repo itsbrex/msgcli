@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	calDeleteForce  bool
-	calDeleteCancel bool
+	calDeleteForce   bool
+	calDeleteCancel  bool
 	calDeleteComment string
 )
 

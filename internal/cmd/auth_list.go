@@ -38,10 +38,10 @@ func runAuthList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Table format
-	fmt.Printf("%-15s %s\n", "ALIAS", "EMAIL")
-	fmt.Printf("%-15s %s\n", "-----", "-----")
+	fmt.Printf("%-15s %-18s %s\n", "ALIAS", "FLOW", "EMAIL")
+	fmt.Printf("%-15s %-18s %s\n", "-----", "----", "-----")
 	for _, acc := range accounts {
-		fmt.Printf("%-15s %s\n", acc.Alias, acc.Email)
+		fmt.Printf("%-15s %-18s %s\n", acc.Alias, acc.Flow, acc.Email)
 	}
 
 	return nil

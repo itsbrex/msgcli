@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
@@ -17,6 +17,7 @@ var (
 	mailListFolder string
 	mailListLimit  int
 	mailListQuery  string
+	mailListFullID bool
 )
 
 var mailListCmd = &cobra.Command{
@@ -32,6 +33,7 @@ func init() {
 	mailListCmd.Flags().StringVarP(&mailListFolder, "folder", "f", "inbox", "Folder to list (inbox, drafts, sentitems, etc.)")
 	mailListCmd.Flags().IntVarP(&mailListLimit, "limit", "l", 25, "Maximum number of messages to return")
 	mailListCmd.Flags().StringVarP(&mailListQuery, "query", "q", "", "Search query (KQL syntax)")
+	mailListCmd.Flags().BoolVar(&mailListFullID, "full-id", false, "Show full message IDs in table output")
 	mailCmd.AddCommand(mailListCmd)
 }
 
@@ -74,14 +76,17 @@ func runMailList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "STATE\tFROM\tSUBJECT\tRECEIVED\tID")
+	fmt.Fprintln(w, "-----\t----\t-------\t--------\t--")
+
 	for _, msg := range result.Value {
-		readMarker := "•"
-		if msg.IsRead {
-			readMarker = " "
+		state := "R"
+		if !msg.IsRead {
+			state = "N"
 		}
-		attachMarker := " "
 		if msg.HasAttachments {
-			attachMarker = "📎"
+			state += "+"
 		}
 
 		from := ""
@@ -92,25 +97,46 @@ func runMailList(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		subject := msg.Subject
-		if len(subject) > 50 {
-			subject = subject[:47] + "..."
+		subject := truncateText(msg.Subject, 58)
+		timeStr := msg.ReceivedDateTime.Local().Format("Jan 02 15:04")
+		msgID := msg.ID
+		if !mailListFullID {
+			msgID = shortMessageID(msg.ID)
 		}
 
-		timeStr := msg.ReceivedDateTime.Local().Format("Jan 02 15:04")
-
-		fmt.Printf("%s%s %-20s %-50s %s\n", readMarker, attachMarker, truncate(from, 20), subject, timeStr)
-		fmt.Printf("   ID: %s\n", msg.ID)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+			state,
+			truncateText(from, 24),
+			subject,
+			timeStr,
+			msgID,
+		)
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	if !mailListFullID {
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprintln(os.Stdout, "Tip: use --full-id to print complete message IDs")
 	}
 
 	return nil
 }
 
-func truncate(s string, maxLen int) string {
+func truncateText(s string, maxLen int) string {
 	if len(s) <= maxLen {
-		return s + strings.Repeat(" ", maxLen-len(s))
+		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+func shortMessageID(s string) string {
+	if len(s) <= 30 {
+		return s
+	}
+	const headLen = 14
+	const tailLen = 12
+	return s[:headLen] + "..." + s[len(s)-tailLen:]
 }
 
 // Helper for formatting relative time
