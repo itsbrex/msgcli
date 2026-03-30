@@ -29,3 +29,6 @@ Thumbs.db
 # Users should not commit their personal config
 .env
 PLAN.md
+docs/inbox-audit
+docs/*.json
+docs/reference
