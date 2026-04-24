@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/skylarbpayne/msgcli/internal/graph"
@@ -140,5 +141,36 @@ func TestMailListTool(t *testing.T) {
 	}
 	if !bytes.Contains([]byte(res.Content[0].Text), []byte(`"subject":"hello"`)) {
 		t.Fatalf("expected subject in text: %q", res.Content[0].Text)
+	}
+}
+
+func TestCalendarCreateNormalizesNonUTCTimesToUTC(t *testing.T) {
+	var captured map[string]interface{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&captured)
+		_, _ = w.Write([]byte(`{"id":"e1"}`))
+	}))
+	defer srv.Close()
+
+	client := graph.NewTestClient(srv.URL)
+	reg := NewRegistry()
+	RegisterCalendarTools(reg, func(_ string) (*graph.Client, error) { return client, nil })
+
+	// 10:00 in -07:00 = 17:00 UTC. Server must receive 17:00:00 with UTC label.
+	args := json.RawMessage(`{"subject":"x","start":"2026-05-01T10:00:00-07:00","end":"2026-05-01T11:00:00-07:00"}`)
+	if _, err := reg.Call(context.Background(), "calendar_create", args); err != nil {
+		t.Fatalf("call: %v", err)
+	}
+
+	start, ok := captured["start"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("missing start in captured body: %+v", captured)
+	}
+	if tz, _ := start["timeZone"].(string); tz != "UTC" {
+		t.Fatalf("expected timeZone=UTC, got %q", tz)
+	}
+	dt, _ := start["dateTime"].(string)
+	if !strings.Contains(dt, "17:00:00") {
+		t.Fatalf("expected dateTime with 17:00:00 (UTC-converted), got %q", dt)
 	}
 }
