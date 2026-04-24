@@ -1,8 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/skylarbpayne/msgcli/internal/graph"
 )
 
 func TestParseJSONLRequests(t *testing.T) {
@@ -35,5 +42,35 @@ func TestParseJSONLRequestsEmptyLinesIgnored(t *testing.T) {
 	}
 	if len(reqs) != 2 {
 		t.Fatalf("expected 2 requests after ignoring blank lines, got %d", len(reqs))
+	}
+}
+
+func TestRunBatchAgainstFakeServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var in graph.BatchPayload
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		out := graph.BatchPayload{}
+		for _, req := range in.Requests {
+			out.Responses = append(out.Responses, graph.BatchResponse{
+				ID: req.ID, Status: 200, Body: json.RawMessage(`{"ok":true}`),
+			})
+		}
+		_ = json.NewEncoder(w).Encode(out)
+	}))
+	defer srv.Close()
+
+	client := graph.NewTestClient(srv.URL)
+	input := `{"id":"1","method":"GET","url":"/me"}` + "\n" +
+		`{"id":"2","method":"GET","url":"/me/messages"}` + "\n"
+	reqs, err := parseJSONLRequests(bytes.NewBufferString(input))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	resps, err := client.Batch(context.Background(), reqs)
+	if err != nil {
+		t.Fatalf("batch error: %v", err)
+	}
+	if len(resps) != 2 {
+		t.Fatalf("expected 2 responses, got %d", len(resps))
 	}
 }
