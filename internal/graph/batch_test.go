@@ -2,6 +2,7 @@ package graph
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 )
 
@@ -35,5 +36,34 @@ func TestBatchRequestMarshal(t *testing.T) {
 	deps, ok := second["dependsOn"].([]interface{})
 	if !ok || len(deps) != 1 || deps[0] != "1" {
 		t.Fatalf("expected dependsOn=[1], got: %v", second["dependsOn"])
+	}
+}
+
+func TestChunkBatch(t *testing.T) {
+	reqs := make([]BatchRequest, 45)
+	for i := range reqs {
+		reqs[i] = BatchRequest{ID: fmt.Sprintf("%d", i+1), Method: "GET", URL: "/me"}
+	}
+	chunks, err := chunkBatch(reqs, 20)
+	if err != nil {
+		t.Fatalf("chunkBatch error: %v", err)
+	}
+	if len(chunks) != 3 {
+		t.Fatalf("expected 3 chunks, got %d", len(chunks))
+	}
+	if len(chunks[0]) != 20 || len(chunks[1]) != 20 || len(chunks[2]) != 5 {
+		t.Fatalf("unexpected chunk sizes: %d/%d/%d", len(chunks[0]), len(chunks[1]), len(chunks[2]))
+	}
+}
+
+func TestChunkBatchCrossChunkDependencyRejected(t *testing.T) {
+	reqs := make([]BatchRequest, 21)
+	for i := range reqs {
+		reqs[i] = BatchRequest{ID: fmt.Sprintf("%d", i+1), Method: "GET", URL: "/me"}
+	}
+	// Request 21 depends on request 1 — across the 20-item boundary.
+	reqs[20].DependsOn = []string{"1"}
+	if _, err := chunkBatch(reqs, 20); err == nil {
+		t.Fatalf("expected cross-chunk dependency error, got nil")
 	}
 }
