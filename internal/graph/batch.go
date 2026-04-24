@@ -15,12 +15,12 @@ import (
 // BatchRequest is one sub-request inside a $batch call.
 // See https://learn.microsoft.com/en-us/graph/json-batching
 type BatchRequest struct {
-	ID        string            `json:"id"`
-	Method    string            `json:"method"`
-	URL       string            `json:"url"`
-	Body      interface{}       `json:"body,omitempty"`
-	Headers   map[string]string `json:"headers,omitempty"`
-	DependsOn []string          `json:"dependsOn,omitempty"`
+	ID        string            `json:"id" yaml:"id"`
+	Method    string            `json:"method" yaml:"method"`
+	URL       string            `json:"url" yaml:"url"`
+	Body      interface{}       `json:"body,omitempty" yaml:"body,omitempty"`
+	Headers   map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	DependsOn []string          `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
 }
 
 // BatchResponse is one sub-response from a $batch call.
