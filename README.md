@@ -163,6 +163,14 @@ msgcli calendar respond AAMkAGI2TG... --response accept --comment "See you there
 msgcli calendar delete AAMkAGI2TG... --cancel --comment "Rescheduling"
 ```
 
+### Batch
+
+| Command | Description |
+|---------|-------------|
+| `msgcli batch [--file <path>]` | Run multiple Graph requests in one $batch call (JSONL in, JSON out) |
+
+See [docs/reference/batch.md](docs/reference/batch.md) for the full JSONL schema and examples.
+
 ### Global Flags
 
 ```bash
