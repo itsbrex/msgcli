@@ -131,8 +131,8 @@ Flow notes:
 | `msgcli mail get <id>` | Read a specific message |
 | `msgcli mail send` | Send a new message |
 | `msgcli mail reply <id>` | Reply to a message |
-| `msgcli mail delete <id>` | Delete a message |
-| `msgcli mail move <id>` | Move message to folder |
+| `msgcli mail delete <id> [<id>...]` | Delete one or more messages (batches >1 into one $batch call) |
+| `msgcli mail move <id> [<id>...]` | Move one or more messages to another folder (batches >1 into one $batch call) |
 | `msgcli mail folders` | List mail folders |
 
 ```bash
