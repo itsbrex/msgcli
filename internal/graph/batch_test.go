@@ -114,3 +114,38 @@ func TestClientBatchRoundTrip(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", responses[0].Status)
 	}
 }
+
+func TestClientBatchPartialFailure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(BatchPayload{
+			Responses: []BatchResponse{
+				{ID: "1", Status: 200, Body: json.RawMessage(`{"ok":true}`)},
+				{ID: "2", Status: 429, Headers: map[string]string{"Retry-After": "3"}, Body: json.RawMessage(`{"error":{"code":"tooManyRequests"}}`)},
+				{ID: "3", Status: 500, Body: json.RawMessage(`{"error":{"code":"internal"}}`)},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	responses, err := c.Batch(context.Background(), []BatchRequest{
+		{ID: "1", Method: "GET", URL: "/me"},
+		{ID: "2", Method: "GET", URL: "/me/messages"},
+		{ID: "3", Method: "GET", URL: "/me/events"},
+	})
+	if err != nil {
+		t.Fatalf("Batch returned wrapper error: %v", err)
+	}
+	if !responses[0].OK() {
+		t.Errorf("expected response 1 OK")
+	}
+	if responses[1].OK() || !responses[1].Throttled() {
+		t.Errorf("expected response 2 throttled")
+	}
+	if responses[1].RetryAfterSeconds() != 3 {
+		t.Errorf("expected Retry-After 3s, got %d", responses[1].RetryAfterSeconds())
+	}
+	if responses[2].OK() {
+		t.Errorf("expected response 3 not OK")
+	}
+}

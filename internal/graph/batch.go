@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 )
 
 // BatchRequest is one sub-request inside a $batch call.
@@ -126,4 +127,20 @@ func chunkBatch(reqs []BatchRequest, size int) ([][]BatchRequest, error) {
 		chunks = append(chunks, chunk)
 	}
 	return chunks, nil
+}
+
+// OK reports whether the sub-response had a 2xx status.
+func (r BatchResponse) OK() bool { return r.Status >= 200 && r.Status < 300 }
+
+// Throttled reports whether Graph throttled this sub-request.
+func (r BatchResponse) Throttled() bool { return r.Status == 429 }
+
+// RetryAfterSeconds returns the Retry-After header in seconds, or 0 if absent.
+func (r BatchResponse) RetryAfterSeconds() int {
+	if v := r.Headers["Retry-After"]; v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return 0
 }
