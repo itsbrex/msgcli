@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -22,22 +21,57 @@ func NewServer(reg *Registry, in io.Reader, out io.Writer, info ServerInfo) *Ser
 	return &Server{reg: reg, in: in, out: out, info: info}
 }
 
-// Run reads JSON-RPC messages (newline-delimited) until EOF, dispatching
-// each one. Returns nil on clean EOF.
+// Run reads JSON-RPC messages (newline-delimited) until EOF or ctx cancels,
+// dispatching each one. Returns nil on clean EOF, ctx.Err() on cancellation,
+// or the scanner error otherwise.
+//
+// Implementation note: bufio.Scanner.Scan() is not context-aware, so we run
+// it in a goroutine and select between incoming lines and ctx.Done(). If the
+// context is cancelled, the scan goroutine may remain blocked on the reader
+// until the reader is closed (typically by process exit). For stdio transport
+// this is acceptable — the subprocess terminates when the parent closes stdin.
 func (s *Server) Run(ctx context.Context) error {
-	scanner := bufio.NewScanner(s.in)
-	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			continue
+	linesCh := make(chan []byte)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(linesCh)
+		scanner := bufio.NewScanner(s.in)
+		scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+		for scanner.Scan() {
+			// Copy — scanner.Bytes() is overwritten on the next Scan().
+			line := append([]byte(nil), scanner.Bytes()...)
+			select {
+			case linesCh <- line:
+			case <-ctx.Done():
+				return
+			}
 		}
-		s.handleLine(ctx, line)
+		if err := scanner.Err(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case line, ok := <-linesCh:
+			if !ok {
+				// EOF or scanner error.
+				select {
+				case err := <-errCh:
+					return err
+				default:
+					return nil
+				}
+			}
+			if len(line) == 0 {
+				continue
+			}
+			s.handleLine(ctx, line)
+		}
 	}
-	if err := scanner.Err(); err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-	return nil
 }
 
 func (s *Server) handleLine(ctx context.Context, line []byte) {
