@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestServerInitializeAndListTools(t *testing.T) {
@@ -96,5 +98,58 @@ func TestServerToolsCallEmptyNameReturnsInvalidParams(t *testing.T) {
 	_ = json.Unmarshal(bytes.TrimSpace(out.Bytes()), &resp)
 	if resp.Error == nil || resp.Error.Code != ErrInvalidParams {
 		t.Fatalf("expected ErrInvalidParams, got: %+v", resp)
+	}
+}
+
+func TestServerRunReturnsOnContextCancel(t *testing.T) {
+	// A reader that blocks forever (simulates stdin with no input).
+	reader, writer := io.Pipe()
+	defer writer.Close()
+
+	reg := NewRegistry()
+	var out bytes.Buffer
+	s := NewServer(reg, reader, &out, ServerInfo{Name: "msgcli", Version: "test"})
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Run(ctx)
+	}()
+
+	// Let Run start and block on the reader.
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context.Canceled, got: %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("Run did not return within 500ms of context cancel")
+	}
+}
+
+func TestServerRunReturnsOnCleanEOF(t *testing.T) {
+	// A reader that emits one request then closes (simulates client closing stdin).
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}` + "\n")
+	reg := NewRegistry()
+	var out bytes.Buffer
+	s := NewServer(reg, input, &out, ServerInfo{Name: "msgcli", Version: "test"})
+
+	done := make(chan error, 1)
+	go func() { done <- s.Run(context.Background()) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected nil on EOF, got: %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("Run did not return on EOF within 500ms")
+	}
+	// The one request should have been handled.
+	if !bytes.Contains(out.Bytes(), []byte(`"jsonrpc":"2.0"`)) {
+		t.Fatalf("expected response written, got: %q", out.String())
 	}
 }
