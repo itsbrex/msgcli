@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -56,6 +57,92 @@ func TestParseJSONLRequestsRejectsDuplicateIDs(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "duplicate") || !strings.Contains(err.Error(), "1") {
 		t.Fatalf("expected error to mention duplicate id 1, got: %v", err)
+	}
+}
+
+func TestParseYAMLRequests(t *testing.T) {
+	input := `requests:
+  - id: "1"
+    method: GET
+    url: /me
+  - id: "2"
+    method: POST
+    url: /me/sendMail
+    body:
+      subject: hi
+    dependsOn: ["1"]
+`
+	reqs, err := parseYAMLRequests(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("parseYAMLRequests error: %v", err)
+	}
+	if len(reqs) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(reqs))
+	}
+	if reqs[0].ID != "1" || reqs[0].Method != "GET" || reqs[0].URL != "/me" {
+		t.Fatalf("unexpected first request: %+v", reqs[0])
+	}
+	if reqs[1].Method != "POST" || reqs[1].Body == nil {
+		t.Fatalf("unexpected second request: %+v", reqs[1])
+	}
+	if len(reqs[1].DependsOn) != 1 || reqs[1].DependsOn[0] != "1" {
+		t.Fatalf("unexpected dependsOn: %+v", reqs[1].DependsOn)
+	}
+}
+
+func TestParseYAMLRequestsValidatesRequiredFields(t *testing.T) {
+	input := `requests:
+  - id: "1"
+    url: /me
+`
+	if _, err := parseYAMLRequests(strings.NewReader(input)); err == nil {
+		t.Fatalf("expected error for missing method")
+	}
+}
+
+func TestParseYAMLRequestsRejectsDuplicateIDs(t *testing.T) {
+	input := `requests:
+  - {id: "1", method: GET, url: /me}
+  - {id: "1", method: GET, url: /me/messages}
+`
+	_, err := parseYAMLRequests(strings.NewReader(input))
+	if err == nil || !strings.Contains(err.Error(), "duplicate") {
+		t.Fatalf("expected duplicate-id error, got: %v", err)
+	}
+}
+
+func TestBatchFileDispatchYAMLExtension(t *testing.T) {
+	// Create a temp .yaml file and prove the dispatcher routes to YAML parser.
+	dir := t.TempDir()
+	path := dir + "/ops.yaml"
+	content := `requests:
+  - {id: "a", method: GET, url: /me}
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	reqs, err := parseRequestsFromFile(path)
+	if err != nil {
+		t.Fatalf("parseRequestsFromFile: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].ID != "a" {
+		t.Fatalf("unexpected: %+v", reqs)
+	}
+}
+
+func TestBatchFileDispatchJSONLExtension(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/ops.jsonl"
+	content := `{"id":"a","method":"GET","url":"/me"}` + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	reqs, err := parseRequestsFromFile(path)
+	if err != nil {
+		t.Fatalf("parseRequestsFromFile: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].ID != "a" {
+		t.Fatalf("unexpected: %+v", reqs)
 	}
 }
 

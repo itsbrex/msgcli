@@ -50,6 +50,27 @@ msgcli batch --file requests.jsonl -a work
 
 Reads batch requests from `requests.jsonl` and executes them using the `work` account.
 
+### Example 4: YAML Input
+
+```bash
+msgcli batch --file requests.yaml -a work
+```
+
+When `--file` has a `.yaml` or `.yml` extension, the file is parsed as YAML instead of JSONL. The top-level key must be `requests:`, containing a list of request objects with the same fields as JSONL:
+
+```yaml
+requests:
+  - id: "1"
+    method: GET
+    url: /me
+  - id: "flag"
+    method: GET
+    url: /me/messages?$top=1
+    dependsOn: ["1"]
+```
+
+All other extensions (including `.json`, `.jsonl`, and stdin) continue to use JSONL format.
+
 ## Output Schema
 
 Responses are returned as a JSON array in the same order as input requests. Each response object contains:
