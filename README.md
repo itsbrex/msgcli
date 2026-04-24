@@ -163,6 +163,18 @@ msgcli calendar respond AAMkAGI2TG... --response accept --comment "See you there
 msgcli calendar delete AAMkAGI2TG... --cancel --comment "Rescheduling"
 ```
 
+### MCP Server
+
+| Command | Description |
+|---------|-------------|
+| `msgcli mcp serve` | Run as an MCP server over stdio (launched by MCP clients) |
+| `msgcli mcp install --client claude-code` | Register msgcli into Claude Code's MCP config |
+
+Exposes all mail, calendar, and auth operations as MCP tools so Claude Code,
+Claude Desktop, and Cursor can invoke them with keychain-backed auth.
+
+See [docs/reference/mcp.md](docs/reference/mcp.md) for the full tool catalog.
+
 ### Batch
 
 | Command | Description |
