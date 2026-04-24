@@ -45,7 +45,7 @@ The Model Context Protocol (MCP) is an open standard that allows AI clients to c
 | calendar_delete | Delete a calendar event | account, id |
 | calendar_respond | Respond to a calendar event invitation | account, id, response, comment |
 | calendar_availability | Get free/busy schedule information for a set of email addresses | account, emails, start, end |
-| auth_list | List all configured accounts (alias, email, flow) | account |
+| auth_list | List all configured accounts (alias, email, flow) | (none) |
 | auth_status | Show auth configuration and per-account token validity | account |
 
 ## Security Notes
