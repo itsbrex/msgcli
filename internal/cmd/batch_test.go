@@ -45,6 +45,20 @@ func TestParseJSONLRequestsEmptyLinesIgnored(t *testing.T) {
 	}
 }
 
+func TestParseJSONLRequestsRejectsDuplicateIDs(t *testing.T) {
+	input := `{"id":"1","method":"GET","url":"/me"}
+{"id":"2","method":"GET","url":"/me/messages"}
+{"id":"1","method":"GET","url":"/me/events"}
+`
+	_, err := parseJSONLRequests(strings.NewReader(input))
+	if err == nil {
+		t.Fatalf("expected error for duplicate id=1, got nil")
+	}
+	if !strings.Contains(err.Error(), "duplicate") || !strings.Contains(err.Error(), "1") {
+		t.Fatalf("expected error to mention duplicate id 1, got: %v", err)
+	}
+}
+
 func TestRunBatchAgainstFakeServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in graph.BatchPayload
