@@ -65,6 +65,10 @@ func (s *Server) handleLine(ctx context.Context, line []byte) {
 			s.writeErr(req.ID, ErrInvalidParams, "invalid params", err.Error())
 			return
 		}
+		if p.Name == "" {
+			s.writeErr(req.ID, ErrInvalidParams, "invalid params", "tool name is required")
+			return
+		}
 		res, err := s.reg.Call(ctx, p.Name, p.Arguments)
 		if err != nil {
 			// Per MCP, tool errors go in-band as isError=true, not as RPC errors.

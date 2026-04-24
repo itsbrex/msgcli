@@ -70,3 +70,31 @@ func TestServerUnknownMethodReturnsError(t *testing.T) {
 		t.Fatalf("expected method-not-found, got: %+v", resp)
 	}
 }
+
+func TestServerToolsCallNullParamsReturnsInvalidParams(t *testing.T) {
+	reg := NewRegistry()
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":null}` + "\n")
+	var out bytes.Buffer
+	s := NewServer(reg, input, &out, ServerInfo{Name: "msgcli", Version: "test"})
+	_ = s.Run(context.Background())
+
+	var resp Response
+	_ = json.Unmarshal(bytes.TrimSpace(out.Bytes()), &resp)
+	if resp.Error == nil || resp.Error.Code != ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got: %+v", resp)
+	}
+}
+
+func TestServerToolsCallEmptyNameReturnsInvalidParams(t *testing.T) {
+	reg := NewRegistry()
+	input := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{}}` + "\n")
+	var out bytes.Buffer
+	s := NewServer(reg, input, &out, ServerInfo{Name: "msgcli", Version: "test"})
+	_ = s.Run(context.Background())
+
+	var resp Response
+	_ = json.Unmarshal(bytes.TrimSpace(out.Bytes()), &resp)
+	if resp.Error == nil || resp.Error.Code != ErrInvalidParams {
+		t.Fatalf("expected ErrInvalidParams, got: %+v", resp)
+	}
+}
