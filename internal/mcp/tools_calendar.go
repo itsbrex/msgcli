@@ -154,8 +154,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			}
 			event := &graph.Event{
 				Subject: p.Subject,
-				Start:   graph.NewDateTimeZone(startTime, "UTC"),
-				End:     graph.NewDateTimeZone(endTime, "UTC"),
+				Start:   graph.NewDateTimeZone(startTime.UTC(), "UTC"),
+				End:     graph.NewDateTimeZone(endTime.UTC(), "UTC"),
 			}
 			if p.Location != "" {
 				event.Location = &graph.Location{DisplayName: p.Location}
