@@ -13,14 +13,15 @@ import (
 	"github.com/skylarbpayne/msgcli/internal/auth"
 )
 
-const (
-	baseURL = "https://graph.microsoft.com/v1.0"
-)
+const defaultBaseURL = "https://graph.microsoft.com/v1.0"
 
 // Client is a Microsoft Graph API client
 type Client struct {
 	httpClient *http.Client
 	account    string
+	baseURL    string
+	// tokenFn is a test seam so tests can bypass auth.GetValidToken.
+	tokenFn func(ctx context.Context, account string) (string, error)
 }
 
 // NewClient creates a new Graph API client for the specified account
@@ -28,7 +29,25 @@ func NewClient(account string) *Client {
 	return &Client{
 		httpClient: &http.Client{},
 		account:    account,
+		baseURL:    defaultBaseURL,
 	}
+}
+
+// newTestClient returns a Client configured for httptest. Package-private.
+func newTestClient(baseURL string) *Client {
+	return &Client{
+		httpClient: &http.Client{},
+		account:    "test",
+		baseURL:    baseURL,
+		tokenFn:    func(ctx context.Context, account string) (string, error) { return "test-token", nil },
+	}
+}
+
+func (c *Client) token(ctx context.Context) (string, error) {
+	if c.tokenFn != nil {
+		return c.tokenFn(ctx, c.account)
+	}
+	return auth.GetValidToken(ctx, c.account)
 }
 
 // GraphError represents an error response from the Graph API
@@ -49,7 +68,7 @@ func (e *GraphError) String() string {
 
 // request makes an authenticated request to the Graph API
 func (c *Client) request(ctx context.Context, method, path string, body interface{}, result interface{}) error {
-	token, err := auth.GetValidToken(ctx, c.account)
+	token, err := c.token(ctx)
 	if err != nil {
 		return fmt.Errorf("auth error: %w", err)
 	}
@@ -63,7 +82,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 		bodyReader = bytes.NewReader(data)
 	}
 
-	reqURL := baseURL + path
+	reqURL := c.baseURL + path
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
 		return err

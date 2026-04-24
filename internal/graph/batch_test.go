@@ -1,8 +1,11 @@
 package graph
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -65,5 +68,49 @@ func TestChunkBatchCrossChunkDependencyRejected(t *testing.T) {
 	reqs[20].DependsOn = []string{"1"}
 	if _, err := chunkBatch(reqs, 20); err == nil {
 		t.Fatalf("expected cross-chunk dependency error, got nil")
+	}
+}
+
+func TestClientBatchRoundTrip(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/$batch" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			t.Errorf("missing bearer: %q", got)
+		}
+		var in BatchPayload
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		// Echo each request as a response with status 200.
+		resp := BatchPayload{}
+		for _, req := range in.Requests {
+			resp.Responses = append(resp.Responses, BatchResponse{
+				ID: req.ID, Status: 200,
+				Body: json.RawMessage(fmt.Sprintf(`{"echoed":%q}`, req.URL)),
+			})
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	reqs := []BatchRequest{
+		{ID: "1", Method: "GET", URL: "/me"},
+		{ID: "2", Method: "GET", URL: "/me/messages"},
+	}
+	responses, err := c.Batch(context.Background(), reqs)
+	if err != nil {
+		t.Fatalf("Batch error: %v", err)
+	}
+	if len(responses) != 2 {
+		t.Fatalf("expected 2 responses, got %d", len(responses))
+	}
+	if responses[0].ID != "1" || responses[1].ID != "2" {
+		t.Fatalf("unexpected response ordering: %+v", responses)
+	}
+	if responses[0].Status != 200 {
+		t.Fatalf("expected status 200, got %d", responses[0].Status)
 	}
 }
