@@ -1,8 +1,13 @@
 package graph
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"sort"
 )
 
 // BatchRequest is one sub-request inside a $batch call.
@@ -28,6 +33,68 @@ type BatchResponse struct {
 type BatchPayload struct {
 	Requests  []BatchRequest  `json:"requests,omitempty"`
 	Responses []BatchResponse `json:"responses,omitempty"`
+}
+
+const batchChunkSize = 20
+
+// Batch sends one or more Graph requests in a single $batch call.
+// Responses are returned in the same order as the input requests.
+func (c *Client) Batch(ctx context.Context, reqs []BatchRequest) ([]BatchResponse, error) {
+	if len(reqs) == 0 {
+		return nil, nil
+	}
+	chunks, err := chunkBatch(reqs, batchChunkSize)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := c.token(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("auth error: %w", err)
+	}
+
+	var all []BatchResponse
+	for _, chunk := range chunks {
+		payload, err := json.Marshal(BatchPayload{Requests: chunk})
+		if err != nil {
+			return nil, err
+		}
+		httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/$batch", bytes.NewReader(payload))
+		if err != nil {
+			return nil, err
+		}
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.httpClient.Do(httpReq)
+		if err != nil {
+			return nil, err
+		}
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode >= 400 {
+			return nil, fmt.Errorf("batch HTTP %d: %s", resp.StatusCode, string(body))
+		}
+		var out BatchPayload
+		if err := json.Unmarshal(body, &out); err != nil {
+			return nil, fmt.Errorf("batch parse: %w", err)
+		}
+		all = append(all, out.Responses...)
+	}
+
+	// Sort responses by input order. Graph does not guarantee response order,
+	// and we preserve the caller's ordering by ID.
+	orderByID := make(map[string]int, len(reqs))
+	for i, r := range reqs {
+		orderByID[r.ID] = i
+	}
+	sort.SliceStable(all, func(i, j int) bool {
+		return orderByID[all[i].ID] < orderByID[all[j].ID]
+	})
+	return all, nil
 }
 
 // chunkBatch splits reqs into groups of at most size. It returns an error if
