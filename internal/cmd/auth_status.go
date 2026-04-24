@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
-	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/spf13/cobra"
@@ -22,72 +21,11 @@ func init() {
 	authCmd.AddCommand(authStatusCmd)
 }
 
-type statusOutput struct {
-	ConfigExists bool            `json:"config_exists"`
-	ClientID     string          `json:"client_id,omitempty"`
-	DefaultFlow  string          `json:"default_auth_flow,omitempty"`
-	Accounts     []accountStatus `json:"accounts"`
-}
-
-type accountStatus struct {
-	Alias     string `json:"alias"`
-	Flow      string `json:"flow"`
-	Email     string `json:"email"`
-	ExpiresAt string `json:"expires_at"`
-	Valid     bool   `json:"valid"`
-	Error     string `json:"error,omitempty"`
-}
-
 func runAuthStatus(cmd *cobra.Command, args []string) error {
-	status := statusOutput{}
-
-	// Check config
-	config, err := auth.LoadConfigOptional()
-	if err != nil {
-		status.ConfigExists = false
-	} else if config != nil {
-		status.ConfigExists = true
-		status.DefaultFlow = config.DefaultAuthFlow.String()
-		if config.ClientID != "" {
-			if len(config.ClientID) > 8 {
-				status.ClientID = config.ClientID[:8] + "..." // Partially mask
-			} else {
-				status.ClientID = config.ClientID
-			}
-		}
-	}
-
-	// List accounts
-	accounts, err := auth.ListAccounts()
-	if err != nil {
-		accounts = []auth.AccountInfo{}
-	}
-
 	ctx := context.Background()
-	for _, acc := range accounts {
-		as := accountStatus{
-			Alias: acc.Alias,
-			Flow:  acc.Flow.String(),
-			Email: acc.Email,
-		}
-
-		token, err := auth.LoadToken(acc.Alias)
-		if err != nil {
-			as.Error = err.Error()
-		} else {
-			as.ExpiresAt = time.Unix(token.ExpiresAt, 0).Local().Format("Jan 02 15:04 MST")
-
-			// Validate token (or refresh if needed). This works for both legacy and msal-office flows.
-			_, err := auth.GetValidToken(ctx, acc.Alias)
-			if err != nil {
-				as.Valid = false
-				as.Error = err.Error()
-			} else {
-				as.Valid = true
-			}
-		}
-
-		status.Accounts = append(status.Accounts, as)
+	status, err := auth.Status(ctx, "")
+	if err != nil {
+		return err
 	}
 
 	format := GetOutputFormat()
