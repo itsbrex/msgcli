@@ -40,6 +40,7 @@ func parseJSONLRequests(r io.Reader) ([]graph.BatchRequest, error) {
 	s := bufio.NewScanner(r)
 	// Expand scanner buffer for large request bodies.
 	s.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	seen := make(map[string]int)
 	lineNum := 0
 	for s.Scan() {
 		lineNum++
@@ -54,6 +55,10 @@ func parseJSONLRequests(r io.Reader) ([]graph.BatchRequest, error) {
 		if req.ID == "" || req.Method == "" || req.URL == "" {
 			return nil, fmt.Errorf("line %d: id, method, and url are required", lineNum)
 		}
+		if prev, dup := seen[req.ID]; dup {
+			return nil, fmt.Errorf("line %d: duplicate id %q (first seen on line %d)", lineNum, req.ID, prev)
+		}
+		seen[req.ID] = lineNum
 		out = append(out, req)
 	}
 	if err := s.Err(); err != nil {
