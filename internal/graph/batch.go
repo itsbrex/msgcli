@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"time"
 )
 
 // BatchRequest is one sub-request inside a $batch call.
@@ -38,6 +39,12 @@ type BatchPayload struct {
 
 const batchChunkSize = 20
 
+const (
+	batchMaxRetries     = 2 // retries after the initial attempt
+	batchMaxRetryWait   = 60 * time.Second
+	batchDefaultBackoff = 1 * time.Second
+)
+
 // Batch sends one or more Graph requests in a single $batch call.
 // Responses are returned in the same order as the input requests.
 func (c *Client) Batch(ctx context.Context, reqs []BatchRequest) ([]BatchResponse, error) {
@@ -56,32 +63,9 @@ func (c *Client) Batch(ctx context.Context, reqs []BatchRequest) ([]BatchRespons
 
 	var all []BatchResponse
 	for _, chunk := range chunks {
-		payload, err := json.Marshal(BatchPayload{Requests: chunk})
+		out, err := c.submitBatchChunk(ctx, chunk, token)
 		if err != nil {
 			return nil, err
-		}
-		httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/$batch", bytes.NewReader(payload))
-		if err != nil {
-			return nil, err
-		}
-		httpReq.Header.Set("Authorization", "Bearer "+token)
-		httpReq.Header.Set("Content-Type", "application/json")
-
-		resp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return nil, err
-		}
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			return nil, err
-		}
-		if resp.StatusCode >= 400 {
-			return nil, fmt.Errorf("batch HTTP %d: %s", resp.StatusCode, string(body))
-		}
-		var out BatchPayload
-		if err := json.Unmarshal(body, &out); err != nil {
-			return nil, fmt.Errorf("batch parse: %w", err)
 		}
 		all = append(all, out.Responses...)
 	}
@@ -96,6 +80,76 @@ func (c *Client) Batch(ctx context.Context, reqs []BatchRequest) ([]BatchRespons
 		return orderByID[all[i].ID] < orderByID[all[j].ID]
 	})
 	return all, nil
+}
+
+// submitBatchChunk sends one chunk and retries whole-batch 429s honoring
+// Retry-After. Returns the parsed BatchPayload or an error.
+func (c *Client) submitBatchChunk(ctx context.Context, chunk []BatchRequest, token string) (*BatchPayload, error) {
+	payload, err := json.Marshal(BatchPayload{Requests: chunk})
+	if err != nil {
+		return nil, err
+	}
+
+	var lastBody []byte
+	for attempt := 0; attempt <= batchMaxRetries; attempt++ {
+		httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/$batch", bytes.NewReader(payload))
+		if err != nil {
+			return nil, err
+		}
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.httpClient.Do(httpReq)
+		if err != nil {
+			return nil, err
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, readErr
+		}
+		lastBody = body
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if attempt == batchMaxRetries {
+				break
+			}
+			wait := parseRetryAfter(resp.Header.Get("Retry-After"), batchDefaultBackoff*time.Duration(1<<uint(attempt)))
+			if wait > batchMaxRetryWait {
+				wait = batchMaxRetryWait
+			}
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(wait):
+			}
+			continue
+		}
+
+		if resp.StatusCode >= 400 {
+			return nil, fmt.Errorf("batch HTTP %d: %s", resp.StatusCode, string(body))
+		}
+
+		var out BatchPayload
+		if err := json.Unmarshal(body, &out); err != nil {
+			return nil, fmt.Errorf("batch parse: %w", err)
+		}
+		return &out, nil
+	}
+	return nil, fmt.Errorf("batch HTTP 429 after %d retries: %s", batchMaxRetries, string(lastBody))
+}
+
+// parseRetryAfter returns the Retry-After value as a duration, falling back to
+// defaultBackoff when the header is missing or malformed. Only integer-second
+// form is supported (Graph uses that; HTTP-date form is not).
+func parseRetryAfter(header string, defaultBackoff time.Duration) time.Duration {
+	if header == "" {
+		return defaultBackoff
+	}
+	if n, err := strconv.Atoi(header); err == nil && n >= 0 {
+		return time.Duration(n) * time.Second
+	}
+	return defaultBackoff
 }
 
 // chunkBatch splits reqs into groups of at most size. It returns an error if

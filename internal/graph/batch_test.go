@@ -3,10 +3,13 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestBatchRequestMarshal(t *testing.T) {
@@ -147,5 +150,88 @@ func TestClientBatchPartialFailure(t *testing.T) {
 	}
 	if responses[2].OK() {
 		t.Errorf("expected response 3 not OK")
+	}
+}
+
+func TestClientBatchRetriesOn429(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls == 1 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(429)
+			_, _ = w.Write([]byte(`{"error":{"code":"tooManyRequests"}}`))
+			return
+		}
+		_ = json.NewEncoder(w).Encode(BatchPayload{
+			Responses: []BatchResponse{
+				{ID: "1", Status: 200, Body: json.RawMessage(`{"ok":true}`)},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := NewTestClient(srv.URL)
+	responses, err := c.Batch(context.Background(), []BatchRequest{
+		{ID: "1", Method: "GET", URL: "/me"},
+	})
+	if err != nil {
+		t.Fatalf("expected success after retry, got: %v", err)
+	}
+	if calls != 2 {
+		t.Fatalf("expected 2 calls (429 + success), got %d", calls)
+	}
+	if len(responses) != 1 || responses[0].Status != 200 {
+		t.Fatalf("unexpected responses after retry: %+v", responses)
+	}
+}
+
+func TestClientBatchGivesUpAfterMaxRetriesOn429(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Retry-After", "0")
+		w.WriteHeader(429)
+		_, _ = w.Write([]byte(`{"error":{"code":"tooManyRequests"}}`))
+	}))
+	defer srv.Close()
+
+	c := NewTestClient(srv.URL)
+	_, err := c.Batch(context.Background(), []BatchRequest{
+		{ID: "1", Method: "GET", URL: "/me"},
+	})
+	if err == nil {
+		t.Fatalf("expected error after exhausting retries, got nil")
+	}
+	if calls != 3 {
+		t.Fatalf("expected 3 calls (1 original + 2 retries), got %d", calls)
+	}
+	if !strings.Contains(err.Error(), "429") {
+		t.Fatalf("expected error to mention 429: %v", err)
+	}
+}
+
+func TestClientBatchRespectsContextDuringRetryWait(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Retry-After", "10") // longer than we'll wait
+		w.WriteHeader(429)
+		_, _ = w.Write([]byte(`{"error":{"code":"tooManyRequests"}}`))
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	c := NewTestClient(srv.URL)
+	_, err := c.Batch(ctx, []BatchRequest{{ID: "1", Method: "GET", URL: "/me"}})
+	if err == nil {
+		t.Fatalf("expected context error, got nil")
+	}
+	if calls != 1 {
+		t.Fatalf("expected 1 call before context cancelled, got %d", calls)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected context.DeadlineExceeded, got: %v", err)
 	}
 }
