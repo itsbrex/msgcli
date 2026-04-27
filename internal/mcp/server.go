@@ -77,7 +77,7 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) handleLine(ctx context.Context, line []byte) {
 	var req Request
 	if err := json.Unmarshal(line, &req); err != nil {
-		s.writeErr(nil, ErrParse, "parse error", err.Error())
+		s.writeErr(nil, ErrParse, "decode request", fmt.Sprintf("decode request: %v", err))
 		return
 	}
 	isNotification := req.ID == nil

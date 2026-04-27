@@ -90,26 +90,26 @@ func SaveFirstPartyToken(alias string, token *FirstPartyTokenData) error {
 
 	dir, err := ensureTokenStoreDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("ensure token store dir: %w", err)
 	}
 
 	payload, err := json.MarshalIndent(token, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal token: %w", err)
 	}
 
 	target := filepath.Join(dir, alias+".json")
 	temp := target + ".tmp"
 	if err := os.WriteFile(temp, payload, 0600); err != nil {
-		return err
+		return fmt.Errorf("write token file %s: %w", temp, err)
 	}
 	if err := os.Chmod(temp, 0600); err != nil {
 		_ = os.Remove(temp)
-		return err
+		return fmt.Errorf("chmod token file %s: %w", temp, err)
 	}
 	if err := os.Rename(temp, target); err != nil {
 		_ = os.Remove(temp)
-		return err
+		return fmt.Errorf("rename token file to %s: %w", target, err)
 	}
 	return os.Chmod(target, 0600)
 }
@@ -150,14 +150,14 @@ func LoadFirstPartyToken(alias string) (*FirstPartyTokenData, error) {
 func DeleteFirstPartyToken(alias string) error {
 	path, err := firstPartyTokenPath(alias)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve token path: %w", err)
 	}
 	err = os.Remove(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%w: account '%s' not found", ErrAccountNotFound, alias)
 		}
-		return err
+		return fmt.Errorf("delete token file %s: %w", path, err)
 	}
 	return nil
 }

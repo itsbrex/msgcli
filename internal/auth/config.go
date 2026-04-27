@@ -99,21 +99,21 @@ func SaveConfig(config *Config) error {
 
 	dir, err := GetConfigDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("get config dir: %w", err)
 	}
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return err
+		return fmt.Errorf("create config dir %s: %w", dir, err)
 	}
 
 	path, err := GetConfigPath()
 	if err != nil {
-		return err
+		return fmt.Errorf("get config path: %w", err)
 	}
 
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal config: %w", err)
 	}
 
 	return os.WriteFile(path, data, 0600)
