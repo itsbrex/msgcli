@@ -40,7 +40,7 @@ func init() {
 func runMailList(cmd *cobra.Command, args []string) error {
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 
 	client := graph.NewClient(account)
@@ -60,7 +60,7 @@ func runMailList(cmd *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("list messages: %w", err)
 	}
 
 	format := GetOutputFormat()
@@ -113,7 +113,7 @@ func runMailList(cmd *cobra.Command, args []string) error {
 		)
 	}
 	if err := w.Flush(); err != nil {
-		return err
+		return fmt.Errorf("flush output: %w", err)
 	}
 	if !mailListFullID {
 		fmt.Fprintln(os.Stdout)

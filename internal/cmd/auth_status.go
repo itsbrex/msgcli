@@ -25,7 +25,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	status, err := auth.Status(ctx, "")
 	if err != nil {
-		return err
+		return fmt.Errorf("get auth status: %w", err)
 	}
 
 	format := GetOutputFormat()
@@ -71,7 +71,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if err := w.Flush(); err != nil {
-		return err
+		return fmt.Errorf("flush output: %w", err)
 	}
 
 	return nil

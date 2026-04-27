@@ -123,7 +123,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		reqs, err = parseJSONLRequests(os.Stdin)
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("parse batch input: %w", err)
 	}
 	if len(reqs) == 0 {
 		return fmt.Errorf("no requests found on input")
@@ -131,13 +131,13 @@ func runBatch(cmd *cobra.Command, args []string) error {
 
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 	client := graph.NewClient(account)
 
 	responses, err := client.Batch(context.Background(), reqs)
 	if err != nil {
-		return err
+		return fmt.Errorf("batch request: %w", err)
 	}
 
 	enc := json.NewEncoder(os.Stdout)

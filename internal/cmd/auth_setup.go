@@ -46,7 +46,7 @@ func runAuthSetup(cmd *cobra.Command, args []string) error {
 	// Check if already configured
 	existing, err = auth.LoadConfigOptional()
 	if err != nil {
-		return err
+		return fmt.Errorf("load config: %w", err)
 	}
 	if existing != nil && existing.ClientID != "" {
 		Infof("Current client ID: %s", existing.ClientID)
@@ -76,7 +76,7 @@ func runAuthSetup(cmd *cobra.Command, args []string) error {
 		reader := bufio.NewReader(os.Stdin)
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			return err
+			return fmt.Errorf("read client id: %w", err)
 		}
 		clientID = strings.TrimSpace(input)
 	}
@@ -88,7 +88,7 @@ func runAuthSetup(cmd *cobra.Command, args []string) error {
 	if strings.TrimSpace(authSetupDefaultFlow) != "" {
 		parsedFlow, err := auth.ParseAuthFlow(authSetupDefaultFlow)
 		if err != nil {
-			return err
+			return fmt.Errorf("parse auth flow: %w", err)
 		}
 		defaultFlow = parsedFlow
 	}

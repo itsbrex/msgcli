@@ -46,11 +46,11 @@ func runAuthAdd(cmd *cobra.Command, args []string) error {
 
 	config, err := auth.LoadConfigOptional()
 	if err != nil {
-		return err
+		return fmt.Errorf("load config: %w", err)
 	}
 	flow, err := auth.ResolveAuthFlow(authAddFlow, config)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve auth flow: %w", err)
 	}
 
 	// Check if account already exists
@@ -77,7 +77,7 @@ func runAuthAddLegacy(alias string, config *auth.Config) error {
 	}
 	clientID, err := auth.ResolveLegacyClientID(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve client id: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
