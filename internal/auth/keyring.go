@@ -79,12 +79,12 @@ var envGetter = os.Getenv
 func SaveToken(alias string, token *TokenData) error {
 	kr, err := keyringOpen()
 	if err != nil {
-		return err
+		return fmt.Errorf("open keyring: %w", err)
 	}
 
 	data, err := json.Marshal(token)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal token: %w", err)
 	}
 
 	return kr.Set(keyring.Item{
@@ -166,14 +166,14 @@ func DeleteToken(alias string) error {
 func deleteLegacyToken(alias string) error {
 	kr, err := keyringOpen()
 	if err != nil {
-		return err
+		return fmt.Errorf("open keyring: %w", err)
 	}
 
 	if err := kr.Remove("token:" + alias); err != nil {
 		if err == keyring.ErrKeyNotFound {
 			return fmt.Errorf("%w: account '%s' not found", ErrAccountNotFound, alias)
 		}
-		return err
+		return fmt.Errorf("remove token for %q: %w", alias, err)
 	}
 	return nil
 }

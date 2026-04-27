@@ -288,10 +288,16 @@ func RefreshAccountTokens(ctx context.Context, alias string, flow AuthFlow) erro
 	switch flow {
 	case FlowLegacy:
 		_, err := getValidLegacyToken(ctx, alias, true)
-		return err
+		if err != nil {
+			return fmt.Errorf("refresh legacy token: %w", err)
+		}
+		return nil
 	case FlowMSALOffice:
 		_, err := getValidFirstPartyGraphToken(ctx, alias, true)
-		return err
+		if err != nil {
+			return fmt.Errorf("refresh first-party token: %w", err)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unsupported auth flow: %s", flow)
 	}
