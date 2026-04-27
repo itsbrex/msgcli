@@ -31,3 +31,10 @@ Thumbs.db
 PLAN.md
 docs/inbox-audit
 docs/*.json
+
+# Git worktrees
+.worktrees/
+
+# Claude Code - track team config, exclude personal overrides
+!.claude/
+.claude/settings.local.json
