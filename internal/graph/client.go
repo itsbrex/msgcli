@@ -94,7 +94,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s %s: %w", method, reqURL, err)
+		return fmt.Errorf("http %s %s: %w", method, reqURL, err)
 	}
 	defer resp.Body.Close()
 
