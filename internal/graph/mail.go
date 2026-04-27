@@ -8,24 +8,24 @@ import (
 
 // Message represents an Outlook email message
 type Message struct {
-	ID                 string         `json:"id"`
-	Subject            string         `json:"subject"`
-	BodyPreview        string         `json:"bodyPreview"`
-	Body               *ItemBody      `json:"body,omitempty"`
-	From               *Recipient     `json:"from,omitempty"`
-	ToRecipients       []Recipient    `json:"toRecipients,omitempty"`
-	CcRecipients       []Recipient    `json:"ccRecipients,omitempty"`
-	BccRecipients      []Recipient    `json:"bccRecipients,omitempty"`
-	ReceivedDateTime   time.Time      `json:"receivedDateTime"`
-	SentDateTime       time.Time      `json:"sentDateTime,omitempty"`
-	HasAttachments     bool           `json:"hasAttachments"`
-	Importance         string         `json:"importance"`
-	IsRead             bool           `json:"isRead"`
-	IsDraft            bool           `json:"isDraft"`
-	ConversationID     string         `json:"conversationId,omitempty"`
-	ParentFolderID     string         `json:"parentFolderId,omitempty"`
-	WebLink            string         `json:"webLink,omitempty"`
-	InternetMessageID  string         `json:"internetMessageId,omitempty"`
+	ID                string      `json:"id"`
+	Subject           string      `json:"subject"`
+	BodyPreview       string      `json:"bodyPreview"`
+	Body              *ItemBody   `json:"body,omitempty"`
+	From              *Recipient  `json:"from,omitempty"`
+	ToRecipients      []Recipient `json:"toRecipients,omitempty"`
+	CcRecipients      []Recipient `json:"ccRecipients,omitempty"`
+	BccRecipients     []Recipient `json:"bccRecipients,omitempty"`
+	ReceivedDateTime  time.Time   `json:"receivedDateTime"`
+	SentDateTime      time.Time   `json:"sentDateTime,omitempty"`
+	HasAttachments    bool        `json:"hasAttachments"`
+	Importance        string      `json:"importance"`
+	IsRead            bool        `json:"isRead"`
+	IsDraft           bool        `json:"isDraft"`
+	ConversationID    string      `json:"conversationId,omitempty"`
+	ParentFolderID    string      `json:"parentFolderId,omitempty"`
+	WebLink           string      `json:"webLink,omitempty"`
+	InternetMessageID string      `json:"internetMessageId,omitempty"`
 }
 
 // ItemBody represents message body content
