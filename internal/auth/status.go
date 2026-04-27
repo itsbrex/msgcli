@@ -19,7 +19,7 @@ type AccountStatus struct {
 	Flow      string `json:"flow"`
 	Email     string `json:"email"`
 	ExpiresAt string `json:"expires_at"`
-	Valid      bool   `json:"valid"`
+	Valid     bool   `json:"valid"`
 	Error     string `json:"error,omitempty"`
 }
 
