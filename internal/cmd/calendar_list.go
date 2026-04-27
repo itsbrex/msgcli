@@ -40,7 +40,7 @@ func init() {
 func runCalendarList(cmd *cobra.Command, args []string) error {
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 
 	// Parse date range
@@ -79,7 +79,7 @@ func runCalendarList(cmd *cobra.Command, args []string) error {
 
 	result, err := client.ListEvents(ctx, calendarListID, startTime, endTime, params)
 	if err != nil {
-		return err
+		return fmt.Errorf("list events: %w", err)
 	}
 
 	format := GetOutputFormat()

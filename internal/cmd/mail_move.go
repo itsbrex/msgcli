@@ -32,7 +32,7 @@ func init() {
 func runMailMove(cmd *cobra.Command, args []string) error {
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 	client := graph.NewClient(account)
 	ctx := context.Background()
@@ -61,7 +61,7 @@ func runMailMoveBulk(ctx context.Context, client *graph.Client, ids []string) er
 	reqs := buildMoveBatch(ids, mailMoveFolder)
 	responses, err := client.Batch(ctx, reqs)
 	if err != nil {
-		return err
+		return fmt.Errorf("batch request: %w", err)
 	}
 
 	if GetOutputFormat() == "json" {

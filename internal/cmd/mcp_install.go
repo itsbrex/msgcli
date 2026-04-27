@@ -39,19 +39,19 @@ func runMCPInstall(cmd *cobra.Command, args []string) error {
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("get home dir: %w", err)
 	}
 	path := filepath.Join(home, ".claude", "settings.json")
 	existing, _ := os.ReadFile(path) // treat missing as empty
 	merged, err := mergeClaudeCodeMCPConfig(existing, bin)
 	if err != nil {
-		return err
+		return fmt.Errorf("merge mcp config: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+		return fmt.Errorf("create config dir: %w", err)
 	}
 	if err := os.WriteFile(path, merged, 0o600); err != nil {
-		return err
+		return fmt.Errorf("write config file: %w", err)
 	}
 	Infof("Installed msgcli MCP server into %s", path)
 	return nil

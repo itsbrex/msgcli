@@ -29,7 +29,7 @@ func init() {
 func runMailDelete(cmd *cobra.Command, args []string) error {
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 	client := graph.NewClient(account)
 	ctx := context.Background()
@@ -70,7 +70,7 @@ func runMailDeleteBulk(ctx context.Context, client *graph.Client, ids []string) 
 	reqs := buildDeleteBatch(ids)
 	responses, err := client.Batch(ctx, reqs)
 	if err != nil {
-		return err
+		return fmt.Errorf("batch request: %w", err)
 	}
 	return reportBulkOutcome("Deleted", ids, responses)
 }

@@ -28,7 +28,7 @@ func runCalendarGet(cmd *cobra.Command, args []string) error {
 
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 
 	client := graph.NewClient(account)
@@ -36,7 +36,7 @@ func runCalendarGet(cmd *cobra.Command, args []string) error {
 
 	event, err := client.GetEvent(ctx, eventID)
 	if err != nil {
-		return err
+		return fmt.Errorf("get event: %w", err)
 	}
 
 	format := GetOutputFormat()

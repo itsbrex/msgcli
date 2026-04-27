@@ -67,7 +67,7 @@ func runMailReply(cmd *cobra.Command, args []string) error {
 
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 
 	client := graph.NewClient(account)

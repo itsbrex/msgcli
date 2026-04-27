@@ -37,17 +37,17 @@ func runAuthRefresh(cmd *cobra.Command, args []string) error {
 
 	alias, err := auth.ResolveAccount(accountInput)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve account: %w", err)
 	}
 
 	config, err := auth.LoadConfigOptional()
 	if err != nil {
-		return err
+		return fmt.Errorf("load config: %w", err)
 	}
 
 	flow, err := auth.ResolveAuthFlow(authRefreshFlow, config)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve auth flow: %w", err)
 	}
 
 	detectedFlow, detectErr := auth.DetectAccountFlow(alias)
@@ -59,7 +59,7 @@ func runAuthRefresh(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	if err := auth.RefreshAccountTokens(ctx, alias, flow); err != nil {
-		return err
+		return fmt.Errorf("refresh account tokens: %w", err)
 	}
 
 	Infof("Account '%s' refreshed successfully (flow: %s)", alias, flow)
