@@ -78,7 +78,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshal request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(data)
 	}
@@ -86,7 +86,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	reqURL := c.baseURL + path
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
-		return err
+		return fmt.Errorf("build %s request to %s: %w", method, reqURL, err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -94,14 +94,14 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %s: %w", method, reqURL, err)
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("read response body: %w", err)
 	}
 
 	// Check for errors
