@@ -98,7 +98,7 @@ func TestClientBatchRoundTrip(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := newTestClient(srv.URL)
+	c := NewTestClient(srv.URL)
 	reqs := []BatchRequest{
 		{ID: "1", Method: "GET", URL: "/me"},
 		{ID: "2", Method: "GET", URL: "/me/messages"},
@@ -130,7 +130,7 @@ func TestClientBatchPartialFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := newTestClient(srv.URL)
+	c := NewTestClient(srv.URL)
 	responses, err := c.Batch(context.Background(), []BatchRequest{
 		{ID: "1", Method: "GET", URL: "/me"},
 		{ID: "2", Method: "GET", URL: "/me/messages"},

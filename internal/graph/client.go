@@ -33,8 +33,9 @@ func NewClient(account string) *Client {
 	}
 }
 
-// newTestClient returns a Client configured for httptest. Package-private.
-func newTestClient(baseURL string) *Client {
+// NewTestClient returns a Client configured for httptest. Intended for tests only;
+// do not use in production code paths.
+func NewTestClient(baseURL string) *Client {
 	return &Client{
 		httpClient: &http.Client{},
 		account:    "test",
