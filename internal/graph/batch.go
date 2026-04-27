@@ -198,7 +198,3 @@ func (r BatchResponse) RetryAfterSeconds() int {
 	}
 	return 0
 }
-
-// NewTestClient returns a Client wired to a custom base URL and a stub token.
-// Intended for tests in other packages; do not use in production code paths.
-func NewTestClient(baseURL string) *Client { return newTestClient(baseURL) }
