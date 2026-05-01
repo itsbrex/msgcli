@@ -31,8 +31,8 @@ type BatchResponse struct {
 	Body    json.RawMessage   `json:"body,omitempty"`
 }
 
-// BatchPayload is the JSON envelope Graph expects/returns.
-type BatchPayload struct {
+// batchPayload is the JSON envelope Graph expects/returns.
+type batchPayload struct {
 	Requests  []BatchRequest  `json:"requests,omitempty"`
 	Responses []BatchResponse `json:"responses,omitempty"`
 }
@@ -83,9 +83,9 @@ func (c *Client) Batch(ctx context.Context, reqs []BatchRequest) ([]BatchRespons
 }
 
 // submitBatchChunk sends one chunk and retries whole-batch 429s honoring
-// Retry-After. Returns the parsed BatchPayload or an error.
-func (c *Client) submitBatchChunk(ctx context.Context, chunk []BatchRequest, token string) (*BatchPayload, error) {
-	payload, err := json.Marshal(BatchPayload{Requests: chunk})
+// Retry-After. Returns the parsed batchPayload or an error.
+func (c *Client) submitBatchChunk(ctx context.Context, chunk []BatchRequest, token string) (*batchPayload, error) {
+	payload, err := json.Marshal(batchPayload{Requests: chunk})
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (c *Client) submitBatchChunk(ctx context.Context, chunk []BatchRequest, tok
 			return nil, fmt.Errorf("batch HTTP %d: %s", resp.StatusCode, string(body))
 		}
 
-		var out BatchPayload
+		var out batchPayload
 		if err := json.Unmarshal(body, &out); err != nil {
 			return nil, fmt.Errorf("batch parse: %w", err)
 		}

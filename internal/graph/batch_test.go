@@ -13,7 +13,7 @@ import (
 )
 
 func TestBatchRequestMarshal(t *testing.T) {
-	reqs := BatchPayload{
+	reqs := batchPayload{
 		Requests: []BatchRequest{
 			{ID: "1", Method: "GET", URL: "/me"},
 			{ID: "2", Method: "POST", URL: "/me/sendMail", Body: map[string]string{"a": "b"}, Headers: map[string]string{"Content-Type": "application/json"}, DependsOn: []string{"1"}},
@@ -82,12 +82,12 @@ func TestClientBatchRoundTrip(t *testing.T) {
 		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
 			t.Errorf("missing bearer: %q", got)
 		}
-		var in BatchPayload
+		var in batchPayload
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
 		// Echo each request as a response with status 200.
-		resp := BatchPayload{}
+		resp := batchPayload{}
 		for _, req := range in.Requests {
 			resp.Responses = append(resp.Responses, BatchResponse{
 				ID: req.ID, Status: 200,
@@ -120,7 +120,7 @@ func TestClientBatchRoundTrip(t *testing.T) {
 
 func TestClientBatchPartialFailure(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(BatchPayload{
+		_ = json.NewEncoder(w).Encode(batchPayload{
 			Responses: []BatchResponse{
 				{ID: "1", Status: 200, Body: json.RawMessage(`{"ok":true}`)},
 				{ID: "2", Status: 429, Headers: map[string]string{"Retry-After": "3"}, Body: json.RawMessage(`{"error":{"code":"tooManyRequests"}}`)},
@@ -163,7 +163,7 @@ func TestClientBatchRetriesOn429(t *testing.T) {
 			_, _ = w.Write([]byte(`{"error":{"code":"tooManyRequests"}}`))
 			return
 		}
-		_ = json.NewEncoder(w).Encode(BatchPayload{
+		_ = json.NewEncoder(w).Encode(batchPayload{
 			Responses: []BatchResponse{
 				{ID: "1", Status: 200, Body: json.RawMessage(`{"ok":true}`)},
 			},

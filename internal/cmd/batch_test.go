@@ -148,14 +148,25 @@ func TestBatchFileDispatchJSONLExtension(t *testing.T) {
 
 func TestRunBatchAgainstFakeServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var in graph.BatchPayload
+		// Decode the request payload to extract requests
+		var in map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		out := graph.BatchPayload{}
-		for _, req := range in.Requests {
-			out.Responses = append(out.Responses, graph.BatchResponse{
-				ID: req.ID, Status: 200, Body: json.RawMessage(`{"ok":true}`),
-			})
+
+		// Build response: for each request, create a 200 OK response
+		responses := make([]map[string]interface{}, 0)
+		if reqs, ok := in["requests"].([]interface{}); ok {
+			for _, req := range reqs {
+				if reqMap, ok := req.(map[string]interface{}); ok {
+					responses = append(responses, map[string]interface{}{
+						"id":     reqMap["id"],
+						"status": 200,
+						"body":   json.RawMessage(`{"ok":true}`),
+					})
+				}
+			}
 		}
+
+		out := map[string]interface{}{"responses": responses}
 		_ = json.NewEncoder(w).Encode(out)
 	}))
 	defer srv.Close()
