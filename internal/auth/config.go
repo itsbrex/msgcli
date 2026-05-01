@@ -22,8 +22,8 @@ type Config struct {
 	DefaultAuthFlow AuthFlow `json:"default_auth_flow,omitempty"`
 }
 
-// GetConfigDir returns the path to the config directory
-func GetConfigDir() (string, error) {
+// getConfigDir returns the path to the config directory
+func getConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -31,9 +31,9 @@ func GetConfigDir() (string, error) {
 	return filepath.Join(home, configDirName), nil
 }
 
-// GetConfigPath returns the path to the config file
-func GetConfigPath() (string, error) {
-	dir, err := GetConfigDir()
+// getConfigPath returns the path to the config file
+func getConfigPath() (string, error) {
+	dir, err := getConfigDir()
 	if err != nil {
 		return "", err
 	}
@@ -42,7 +42,7 @@ func GetConfigPath() (string, error) {
 
 // LoadConfig loads the configuration from disk
 func LoadConfig() (*Config, error) {
-	path, err := GetConfigPath()
+	path, err := getConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func SaveConfig(config *Config) error {
 		return err
 	}
 
-	dir, err := GetConfigDir()
+	dir, err := getConfigDir()
 	if err != nil {
 		return fmt.Errorf("get config dir: %w", err)
 	}
@@ -106,7 +106,7 @@ func SaveConfig(config *Config) error {
 		return fmt.Errorf("create config dir %s: %w", dir, err)
 	}
 
-	path, err := GetConfigPath()
+	path, err := getConfigPath()
 	if err != nil {
 		return fmt.Errorf("get config path: %w", err)
 	}

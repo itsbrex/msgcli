@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -32,7 +31,7 @@ type FirstPartyTokenData struct {
 }
 
 func tokenStoreDir() (string, error) {
-	configDir, err := GetConfigDir()
+	configDir, err := getConfigDir()
 	if err != nil {
 		return "", err
 	}
@@ -206,24 +205,4 @@ func ListFirstPartyAccounts() ([]AccountInfo, error) {
 		return accounts[i].Alias < accounts[j].Alias
 	})
 	return accounts, nil
-}
-
-func tokenStorePermissions(alias string) (fs.FileMode, fs.FileMode, error) {
-	dir, err := tokenStoreDir()
-	if err != nil {
-		return 0, 0, err
-	}
-	filePath, err := firstPartyTokenPath(alias)
-	if err != nil {
-		return 0, 0, err
-	}
-	dirInfo, err := os.Stat(dir)
-	if err != nil {
-		return 0, 0, err
-	}
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		return 0, 0, err
-	}
-	return dirInfo.Mode().Perm(), fileInfo.Mode().Perm(), nil
 }

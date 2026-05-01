@@ -1,8 +1,30 @@
 package auth
 
 import (
+	"io/fs"
+	"os"
 	"testing"
 )
+
+func tokenStorePermissions(alias string) (fs.FileMode, fs.FileMode, error) {
+	dir, err := tokenStoreDir()
+	if err != nil {
+		return 0, 0, err
+	}
+	filePath, err := firstPartyTokenPath(alias)
+	if err != nil {
+		return 0, 0, err
+	}
+	dirInfo, err := os.Stat(dir)
+	if err != nil {
+		return 0, 0, err
+	}
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return 0, 0, err
+	}
+	return dirInfo.Mode().Perm(), fileInfo.Mode().Perm(), nil
+}
 
 func TestSaveFirstPartyTokenEnforcesPermissions(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
