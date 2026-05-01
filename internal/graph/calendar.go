@@ -8,29 +8,29 @@ import (
 
 // Event represents an Outlook calendar event
 type Event struct {
-	ID                    string        `json:"id,omitempty"`
-	Subject               string        `json:"subject"`
-	Body                  *ItemBody     `json:"body,omitempty"`
-	BodyPreview           string        `json:"bodyPreview,omitempty"`
-	Start                 *DateTimeZone `json:"start"`
-	End                   *DateTimeZone `json:"end"`
-	Location              *Location     `json:"location,omitempty"`
-	Attendees             []Attendee    `json:"attendees,omitempty"`
-	Organizer             *Recipient    `json:"organizer,omitempty"`
-	IsAllDay              bool          `json:"isAllDay"`
-	IsCancelled           bool          `json:"isCancelled"`
-	IsOrganizer           bool          `json:"isOrganizer"`
+	ID                    string          `json:"id,omitempty"`
+	Subject               string          `json:"subject"`
+	Body                  *ItemBody       `json:"body,omitempty"`
+	BodyPreview           string          `json:"bodyPreview,omitempty"`
+	Start                 *DateTimeZone   `json:"start"`
+	End                   *DateTimeZone   `json:"end"`
+	Location              *Location       `json:"location,omitempty"`
+	Attendees             []Attendee      `json:"attendees,omitempty"`
+	Organizer             *Recipient      `json:"organizer,omitempty"`
+	IsAllDay              bool            `json:"isAllDay"`
+	IsCancelled           bool            `json:"isCancelled"`
+	IsOrganizer           bool            `json:"isOrganizer"`
 	ResponseStatus        *ResponseStatus `json:"responseStatus,omitempty"`
-	ShowAs                string        `json:"showAs,omitempty"` // free, tentative, busy, oof, workingElsewhere, unknown
-	Importance            string        `json:"importance,omitempty"`
-	Sensitivity           string        `json:"sensitivity,omitempty"`
-	Recurrence            *Recurrence   `json:"recurrence,omitempty"`
-	WebLink               string        `json:"webLink,omitempty"`
-	OnlineMeetingURL      string        `json:"onlineMeetingUrl,omitempty"`
-	IsOnlineMeeting       bool          `json:"isOnlineMeeting"`
-	OnlineMeetingProvider string        `json:"onlineMeetingProvider,omitempty"`
-	CreatedDateTime       time.Time     `json:"createdDateTime,omitempty"`
-	LastModifiedDateTime  time.Time     `json:"lastModifiedDateTime,omitempty"`
+	ShowAs                string          `json:"showAs,omitempty"` // free, tentative, busy, oof, workingElsewhere, unknown
+	Importance            string          `json:"importance,omitempty"`
+	Sensitivity           string          `json:"sensitivity,omitempty"`
+	Recurrence            *Recurrence     `json:"recurrence,omitempty"`
+	WebLink               string          `json:"webLink,omitempty"`
+	OnlineMeetingURL      string          `json:"onlineMeetingUrl,omitempty"`
+	IsOnlineMeeting       bool            `json:"isOnlineMeeting"`
+	OnlineMeetingProvider string          `json:"onlineMeetingProvider,omitempty"`
+	CreatedDateTime       time.Time       `json:"createdDateTime,omitempty"`
+	LastModifiedDateTime  time.Time       `json:"lastModifiedDateTime,omitempty"`
 }
 
 // DateTimeZone represents a date/time with timezone
@@ -57,8 +57,8 @@ type Address struct {
 
 // Attendee represents an event attendee
 type Attendee struct {
-	EmailAddress EmailAddress `json:"emailAddress"`
-	Type         string       `json:"type"` // required, optional, resource
+	EmailAddress EmailAddress    `json:"emailAddress"`
+	Type         string          `json:"type"` // required, optional, resource
 	Status       *ResponseStatus `json:"status,omitempty"`
 }
 
@@ -94,41 +94,41 @@ type RecurrenceRange struct {
 
 // Calendar represents an Outlook calendar
 type Calendar struct {
-	ID                        string `json:"id"`
-	Name                      string `json:"name"`
-	Color                     string `json:"color,omitempty"`
-	IsDefaultCalendar         bool   `json:"isDefaultCalendar"`
-	CanViewPrivateItems       bool   `json:"canViewPrivateItems"`
-	CanEdit                   bool   `json:"canEdit"`
-	CanShare                  bool   `json:"canShare"`
-	Owner                     *EmailAddress `json:"owner,omitempty"`
+	ID                  string        `json:"id"`
+	Name                string        `json:"name"`
+	Color               string        `json:"color,omitempty"`
+	IsDefaultCalendar   bool          `json:"isDefaultCalendar"`
+	CanViewPrivateItems bool          `json:"canViewPrivateItems"`
+	CanEdit             bool          `json:"canEdit"`
+	CanShare            bool          `json:"canShare"`
+	Owner               *EmailAddress `json:"owner,omitempty"`
 }
 
 // ScheduleInfo represents free/busy information for a user
 type ScheduleInfo struct {
-	ScheduleID       string           `json:"scheduleId"`
-	AvailabilityView string           `json:"availabilityView"`
-	ScheduleItems    []ScheduleItem   `json:"scheduleItems"`
-	WorkingHours     *WorkingHours    `json:"workingHours,omitempty"`
-	Error            *ScheduleError   `json:"error,omitempty"`
+	ScheduleID       string         `json:"scheduleId"`
+	AvailabilityView string         `json:"availabilityView"`
+	ScheduleItems    []ScheduleItem `json:"scheduleItems"`
+	WorkingHours     *WorkingHours  `json:"workingHours,omitempty"`
+	Error            *ScheduleError `json:"error,omitempty"`
 }
 
 // ScheduleItem represents a time slot in a schedule
 type ScheduleItem struct {
-	Start    *DateTimeZone `json:"start"`
-	End      *DateTimeZone `json:"end"`
-	Status   string        `json:"status"` // free, tentative, busy, oof, workingElsewhere, unknown
-	Subject  string        `json:"subject,omitempty"`
-	Location string        `json:"location,omitempty"`
-	IsPrivate bool         `json:"isPrivate"`
+	Start     *DateTimeZone `json:"start"`
+	End       *DateTimeZone `json:"end"`
+	Status    string        `json:"status"` // free, tentative, busy, oof, workingElsewhere, unknown
+	Subject   string        `json:"subject,omitempty"`
+	Location  string        `json:"location,omitempty"`
+	IsPrivate bool          `json:"isPrivate"`
 }
 
 // WorkingHours represents user's working hours
 type WorkingHours struct {
-	DaysOfWeek []string        `json:"daysOfWeek"`
-	StartTime  string          `json:"startTime"`
-	EndTime    string          `json:"endTime"`
-	TimeZone   *TimeZoneBase   `json:"timeZone"`
+	DaysOfWeek []string      `json:"daysOfWeek"`
+	StartTime  string        `json:"startTime"`
+	EndTime    string        `json:"endTime"`
+	TimeZone   *TimeZoneBase `json:"timeZone"`
 }
 
 // TimeZoneBase represents a timezone
@@ -226,31 +226,30 @@ func (c *Client) DeleteEvent(ctx context.Context, eventID string) error {
 // AcceptEvent accepts a meeting invitation
 func (c *Client) AcceptEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
 	path := fmt.Sprintf("/me/events/%s/accept", eventID)
-	body := map[string]interface{}{
-		"comment":      comment,
-		"sendResponse": sendResponse,
-	}
-	return c.Post(ctx, path, body, nil)
+	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
 }
 
 // DeclineEvent declines a meeting invitation
 func (c *Client) DeclineEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
 	path := fmt.Sprintf("/me/events/%s/decline", eventID)
-	body := map[string]interface{}{
-		"comment":      comment,
-		"sendResponse": sendResponse,
-	}
-	return c.Post(ctx, path, body, nil)
+	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
 }
 
 // TentativelyAcceptEvent tentatively accepts a meeting
 func (c *Client) TentativelyAcceptEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
 	path := fmt.Sprintf("/me/events/%s/tentativelyAccept", eventID)
-	body := map[string]interface{}{
-		"comment":      comment,
-		"sendResponse": sendResponse,
+	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
+}
+
+// respondBody builds the Graph payload for accept/decline/tentativelyAccept.
+// Graph rejects a non-null comment when sendResponse is false, so omit the
+// comment field entirely when empty.
+func respondBody(comment string, sendResponse bool) map[string]interface{} {
+	body := map[string]interface{}{"sendResponse": sendResponse}
+	if comment != "" {
+		body["comment"] = comment
 	}
-	return c.Post(ctx, path, body, nil)
+	return body
 }
 
 // CancelEvent cancels an event (only for organizer)
@@ -263,9 +262,9 @@ func (c *Client) CancelEvent(ctx context.Context, eventID string, comment string
 // GetSchedule gets free/busy information for users
 func (c *Client) GetSchedule(ctx context.Context, emails []string, startTime, endTime time.Time) ([]ScheduleInfo, error) {
 	body := map[string]interface{}{
-		"schedules":        emails,
-		"startTime":        DateTimeZone{DateTime: startTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
-		"endTime":          DateTimeZone{DateTime: endTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
+		"schedules":                emails,
+		"startTime":                DateTimeZone{DateTime: startTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
+		"endTime":                  DateTimeZone{DateTime: endTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
 		"availabilityViewInterval": 30,
 	}
 
