@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/skylarbpayne/msgcli/internal/text"
 	"github.com/spf13/cobra"
 )
 
@@ -98,7 +99,7 @@ func runCalendarGet(cmd *cobra.Command, args []string) error {
 		fmt.Println("--- Description ---")
 		content := event.Body.Content
 		if event.Body.ContentType == "html" {
-			content = stripHTML(content)
+			content = text.StripHTML(content)
 		}
 		fmt.Println(strings.TrimSpace(content))
 	}

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"time"
 )
 
 // StatusReport is the structured auth-status snapshot returned by Status.
@@ -18,7 +17,7 @@ type AccountStatus struct {
 	Alias     string `json:"alias"`
 	Flow      string `json:"flow"`
 	Email     string `json:"email"`
-	ExpiresAt string `json:"expires_at"`
+	ExpiresAt int64  `json:"expires_at"`
 	Valid     bool   `json:"valid"`
 	Error     string `json:"error,omitempty"`
 }
@@ -57,7 +56,7 @@ func Status(ctx context.Context, alias string) (*StatusReport, error) {
 		if err != nil {
 			as.Error = err.Error()
 		} else {
-			as.ExpiresAt = time.Unix(token.ExpiresAt, 0).Local().Format("Jan 02 15:04 MST")
+			as.ExpiresAt = token.ExpiresAt
 			if _, err := GetValidToken(ctx, acc.Alias); err != nil {
 				as.Valid = false
 				as.Error = err.Error()
