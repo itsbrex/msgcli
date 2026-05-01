@@ -26,11 +26,7 @@ func RegisterAuthTools(r *Registry) {
 			if accounts == nil {
 				accounts = []auth.AccountInfo{}
 			}
-			body, err := json.Marshal(accounts)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(accounts)
 		},
 	})
 
@@ -49,20 +45,14 @@ func RegisterAuthTools(r *Registry) {
 			var p struct {
 				Account string `json:"account"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			report, err := auth.Status(ctx, p.Account)
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(report)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(report)
 		},
 	})
 }

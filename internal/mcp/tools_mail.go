@@ -35,10 +35,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				Limit   int    `json:"limit"`
 				Query   string `json:"query"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			if p.Folder == "" {
 				p.Folder = "inbox"
@@ -63,11 +61,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(result.Value)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(result.Value)
 		},
 	})
 
@@ -89,10 +83,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				Account string `json:"account"`
 				ID      string `json:"id"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -102,11 +94,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(msg)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(msg)
 		},
 	})
 
@@ -136,10 +124,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				Body    string   `json:"body"`
 				IsHTML  bool     `json:"isHtml"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			if p.CC == nil {
 				p.CC = []string{}
@@ -151,7 +137,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err := client.SendMail(ctx, p.To, p.CC, p.Subject, p.Body, p.IsHTML); err != nil {
 				return ToolCallResult{}, err
 			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: `{"ok":true}`}}}, nil
+			return okResult, nil
 		},
 	})
 
@@ -177,10 +163,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				Comment  string `json:"comment"`
 				ReplyAll bool   `json:"replyAll"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -194,7 +178,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: `{"ok":true}`}}}, nil
+			return okResult, nil
 		},
 	})
 
@@ -218,10 +202,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				ID      string `json:"id"`
 				Folder  string `json:"folder"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -231,11 +213,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(msg)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(msg)
 		},
 	})
 
@@ -257,10 +235,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 				Account string `json:"account"`
 				ID      string `json:"id"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -269,7 +245,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err := client.DeleteMessage(ctx, p.ID); err != nil {
 				return ToolCallResult{}, err
 			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: `{"ok":true}`}}}, nil
+			return okResult, nil
 		},
 	})
 
@@ -288,10 +264,8 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			var p struct {
 				Account string `json:"account"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -301,11 +275,7 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(result.Value)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(result.Value)
 		},
 	})
 }
