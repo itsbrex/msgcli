@@ -122,18 +122,20 @@ func (c *Client) SendMail(ctx context.Context, to []string, cc []string, subject
 	return c.Post(ctx, "/me/sendMail", req, nil)
 }
 
+// replyToMessage is the shared helper for reply/replyAll.
+func (c *Client) replyToMessage(ctx context.Context, messageID, action, comment string) error {
+	path := fmt.Sprintf("/me/messages/%s/%s", messageID, action)
+	return c.Post(ctx, path, map[string]string{"comment": comment}, nil)
+}
+
 // ReplyToMessage sends a reply to a message
 func (c *Client) ReplyToMessage(ctx context.Context, messageID, comment string) error {
-	path := fmt.Sprintf("/me/messages/%s/reply", messageID)
-	body := map[string]string{"comment": comment}
-	return c.Post(ctx, path, body, nil)
+	return c.replyToMessage(ctx, messageID, "reply", comment)
 }
 
 // ReplyAllToMessage sends a reply-all to a message
 func (c *Client) ReplyAllToMessage(ctx context.Context, messageID, comment string) error {
-	path := fmt.Sprintf("/me/messages/%s/replyAll", messageID)
-	body := map[string]string{"comment": comment}
-	return c.Post(ctx, path, body, nil)
+	return c.replyToMessage(ctx, messageID, "replyAll", comment)
 }
 
 // DeleteMessage deletes a message

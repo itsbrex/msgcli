@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
@@ -80,4 +82,19 @@ func writeJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// readBodyFromStdin reads all lines from stdin and returns them joined by newlines,
+// with the trailing newline stripped.
+func readBodyFromStdin() (string, error) {
+	var b strings.Builder
+	sc := bufio.NewScanner(os.Stdin)
+	for sc.Scan() {
+		b.WriteString(sc.Text())
+		b.WriteByte('\n')
+	}
+	if err := sc.Err(); err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(b.String(), "\n"), nil
 }

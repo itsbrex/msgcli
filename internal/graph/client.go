@@ -51,9 +51,11 @@ func (c *Client) token(ctx context.Context) (string, error) {
 	return auth.GetValidToken(ctx, c.account)
 }
 
-// GraphError represents an error response from the Graph API
+// GraphError represents an error response from the Graph API.
+// The inner struct field is named Err (not Error) to avoid a name conflict
+// with the Error() method that implements the error interface.
 type GraphError struct {
-	Error struct {
+	Err struct {
 		Code       string `json:"code"`
 		Message    string `json:"message"`
 		InnerError struct {
@@ -63,9 +65,13 @@ type GraphError struct {
 	} `json:"error"`
 }
 
-func (e *GraphError) String() string {
-	return fmt.Sprintf("%s: %s", e.Error.Code, e.Error.Message)
+// Error implements the error interface.
+func (e *GraphError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Err.Code, e.Err.Message)
 }
+
+// String returns the same human-readable representation as Error().
+func (e *GraphError) String() string { return e.Error() }
 
 // request makes an authenticated request to the Graph API
 func (c *Client) request(ctx context.Context, method, path string, body interface{}, result interface{}) error {
@@ -107,8 +113,8 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	// Check for errors
 	if resp.StatusCode >= 400 {
 		var graphErr GraphError
-		if err := json.Unmarshal(respBody, &graphErr); err == nil && graphErr.Error.Code != "" {
-			return fmt.Errorf("graph API error: %s", graphErr.String())
+		if err := json.Unmarshal(respBody, &graphErr); err == nil && graphErr.Err.Code != "" {
+			return fmt.Errorf("%w", &graphErr)
 		}
 		return fmt.Errorf("http %d: %s", resp.StatusCode, string(respBody))
 	}
