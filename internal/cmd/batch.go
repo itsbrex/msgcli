@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -129,18 +127,15 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no requests found on input")
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-	client := graph.NewClient(account)
 
-	responses, err := client.Batch(context.Background(), reqs)
+	responses, err := client.Batch(ctx, reqs)
 	if err != nil {
 		return fmt.Errorf("batch request: %w", err)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	return enc.Encode(responses)
+	return writeJSON(responses)
 }

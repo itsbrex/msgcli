@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
@@ -30,12 +28,10 @@ func init() {
 }
 
 func runMailMove(cmd *cobra.Command, args []string) error {
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	if len(args) == 1 {
 		return runMailMoveSingle(ctx, client, args[0])
@@ -49,9 +45,7 @@ func runMailMoveSingle(ctx context.Context, client *graph.Client, messageID stri
 		return fmt.Errorf("failed to move message: %w", err)
 	}
 	if GetOutputFormat() == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(result)
+		return writeJSON(result)
 	}
 	Infof("Message moved to folder: %s", result.ParentFolderID)
 	return nil
@@ -83,9 +77,7 @@ func runMailMoveBulk(ctx context.Context, client *graph.Client, ids []string) er
 				outcomes[i].Error = string(r.Body)
 			}
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(outcomes)
+		return writeJSON(outcomes)
 	}
 
 	return reportBulkOutcome("Moved", ids, responses)
