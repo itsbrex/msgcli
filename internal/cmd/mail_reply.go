@@ -2,13 +2,10 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -65,13 +62,10 @@ func runMailReply(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("reply body is required")
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	if mailReplyAll {
 		if err := client.ReplyAllToMessage(ctx, messageID, body); err != nil {

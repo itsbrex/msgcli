@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/skylarbpayne/msgcli/internal/auth"
+	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -59,4 +63,21 @@ func IsNoInput() bool {
 // Infof prints an info message to stderr (for progress, not data)
 func Infof(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
+}
+
+// newClientFromFlag resolves the account from the --account flag and returns
+// a graph client and background context ready for use.
+func newClientFromFlag() (*graph.Client, context.Context, error) {
+	account, err := auth.ResolveAccount(GetAccountFlag())
+	if err != nil {
+		return nil, nil, err
+	}
+	return graph.NewClient(account), context.Background(), nil
+}
+
+// writeJSON encodes v as indented JSON to stdout.
+func writeJSON(v any) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
 }

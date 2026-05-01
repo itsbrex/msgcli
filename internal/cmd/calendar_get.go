@@ -1,14 +1,9 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -26,13 +21,10 @@ func init() {
 func runCalendarGet(cmd *cobra.Command, args []string) error {
 	eventID := args[0]
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	event, err := client.GetEvent(ctx, eventID)
 	if err != nil {
@@ -41,9 +33,7 @@ func runCalendarGet(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(event)
+		return writeJSON(event)
 	}
 
 	// Text format

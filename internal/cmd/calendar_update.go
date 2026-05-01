@@ -1,13 +1,9 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
@@ -87,13 +83,10 @@ func runCalendarUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no updates specified - use --subject, --start, --end, --location, or --body")
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	result, err := client.UpdateEvent(ctx, eventID, updates)
 	if err != nil {
@@ -102,9 +95,7 @@ func runCalendarUpdate(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(result)
+		return writeJSON(result)
 	}
 
 	Infof("Event updated successfully")

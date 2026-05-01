@@ -1,13 +1,8 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -22,13 +17,10 @@ func init() {
 }
 
 func runMailFolders(cmd *cobra.Command, args []string) error {
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	result, err := client.ListMailFolders(ctx)
 	if err != nil {
@@ -37,9 +29,7 @@ func runMailFolders(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(result.Value)
+		return writeJSON(result.Value)
 	}
 
 	// Table format

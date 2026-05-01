@@ -2,13 +2,10 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -38,13 +35,10 @@ func init() {
 func runCalendarDelete(cmd *cobra.Command, args []string) error {
 	eventID := args[0]
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	if !calDeleteForce && !IsNoInput() {
 		event, err := client.GetEvent(ctx, eventID)

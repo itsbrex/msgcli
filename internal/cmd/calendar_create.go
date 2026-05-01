@@ -1,14 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
@@ -94,7 +90,7 @@ func runCalendarCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
@@ -127,9 +123,6 @@ func runCalendarCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	client := graph.NewClient(account)
-	ctx := context.Background()
-
 	result, err := client.CreateEvent(ctx, event)
 	if err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
@@ -137,9 +130,7 @@ func runCalendarCreate(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(result)
+		return writeJSON(result)
 	}
 
 	Infof("Event created successfully")

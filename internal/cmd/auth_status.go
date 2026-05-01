@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -30,9 +29,7 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(status)
+		return writeJSON(status)
 	}
 
 	// Table format

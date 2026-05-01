@@ -1,14 +1,9 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -54,13 +49,10 @@ func runCalendarAvailability(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid end time: %w", err)
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	schedules, err := client.GetSchedule(ctx, calAvailEmails, startTime, endTime)
 	if err != nil {
@@ -69,9 +61,7 @@ func runCalendarAvailability(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(schedules)
+		return writeJSON(schedules)
 	}
 
 	// Table format

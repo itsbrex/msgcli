@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
@@ -27,12 +26,10 @@ func init() {
 }
 
 func runMailDelete(cmd *cobra.Command, args []string) error {
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	if len(args) == 1 {
 		return runMailDeleteSingle(ctx, client, args[0])

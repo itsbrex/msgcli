@@ -2,13 +2,10 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
-	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
 
@@ -85,13 +82,10 @@ func runMailSend(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("message body is required")
 	}
 
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	if err := client.SendMail(ctx, mailSendTo, mailSendCc, mailSendSubject, body, mailSendHTML); err != nil {
 		return fmt.Errorf("failed to send mail: %w", err)

@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/spf13/cobra"
@@ -32,9 +30,7 @@ func runAuthList(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(accounts)
+		return writeJSON(accounts)
 	}
 
 	// Table format

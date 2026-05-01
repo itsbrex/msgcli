@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
-	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
 	"github.com/spf13/cobra"
 )
@@ -37,13 +34,10 @@ func init() {
 }
 
 func runMailList(cmd *cobra.Command, args []string) error {
-	account, err := auth.ResolveAccount(GetAccountFlag())
+	client, ctx, err := newClientFromFlag()
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
-
-	client := graph.NewClient(account)
-	ctx := context.Background()
 
 	var result *graph.ListResponse[graph.Message]
 
@@ -64,9 +58,7 @@ func runMailList(cmd *cobra.Command, args []string) error {
 
 	format := GetOutputFormat()
 	if format == "json" {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(result.Value)
+		return writeJSON(result.Value)
 	}
 
 	// Table format
