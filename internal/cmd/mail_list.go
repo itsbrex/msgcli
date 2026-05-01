@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
-	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
@@ -137,23 +136,4 @@ func shortMessageID(s string) string {
 	const headLen = 14
 	const tailLen = 12
 	return s[:headLen] + "..." + s[len(s)-tailLen:]
-}
-
-// Helper for formatting relative time
-func relativeTime(t time.Time) string {
-	now := time.Now()
-	diff := now.Sub(t)
-
-	switch {
-	case diff < time.Minute:
-		return "just now"
-	case diff < time.Hour:
-		return fmt.Sprintf("%dm ago", int(diff.Minutes()))
-	case diff < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(diff.Hours()))
-	case diff < 7*24*time.Hour:
-		return fmt.Sprintf("%dd ago", int(diff.Hours()/24))
-	default:
-		return t.Format("Jan 02")
-	}
 }

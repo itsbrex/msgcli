@@ -56,11 +56,6 @@ func IsNoInput() bool {
 	return noInputFlag
 }
 
-// Errorf prints an error message to stderr
-func Errorf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
-}
-
 // Infof prints an info message to stderr (for progress, not data)
 func Infof(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)

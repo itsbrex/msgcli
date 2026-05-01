@@ -278,16 +278,6 @@ func (c *Client) GetSchedule(ctx context.Context, emails []string, startTime, en
 	return result.Value, nil
 }
 
-// ListCalendars lists all calendars
-func (c *Client) ListCalendars(ctx context.Context) (*ListResponse[Calendar], error) {
-	var result ListResponse[Calendar]
-	if err := c.Get(ctx, "/me/calendars", &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
 // NewDateTimeZone creates a DateTimeZone from a time.Time
 func NewDateTimeZone(t time.Time, tz string) *DateTimeZone {
 	if tz == "" {

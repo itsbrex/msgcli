@@ -136,22 +136,6 @@ func (c *Client) ReplyAllToMessage(ctx context.Context, messageID, comment strin
 	return c.Post(ctx, path, body, nil)
 }
 
-// ForwardMessage forwards a message
-func (c *Client) ForwardMessage(ctx context.Context, messageID, comment string, to []string) error {
-	path := fmt.Sprintf("/me/messages/%s/forward", messageID)
-
-	toRecipients := make([]Recipient, len(to))
-	for i, addr := range to {
-		toRecipients[i] = Recipient{EmailAddress: EmailAddress{Address: addr}}
-	}
-
-	body := map[string]interface{}{
-		"comment":      comment,
-		"toRecipients": toRecipients,
-	}
-	return c.Post(ctx, path, body, nil)
-}
-
 // DeleteMessage deletes a message
 func (c *Client) DeleteMessage(ctx context.Context, messageID string) error {
 	path := fmt.Sprintf("/me/messages/%s", messageID)
@@ -171,29 +155,10 @@ func (c *Client) MoveMessage(ctx context.Context, messageID, destinationFolderID
 	return &result, nil
 }
 
-// MarkAsRead marks a message as read or unread
-func (c *Client) MarkAsRead(ctx context.Context, messageID string, isRead bool) error {
-	path := fmt.Sprintf("/me/messages/%s", messageID)
-	body := map[string]bool{"isRead": isRead}
-	return c.Patch(ctx, path, body, nil)
-}
-
 // ListMailFolders lists mail folders
 func (c *Client) ListMailFolders(ctx context.Context) (*ListResponse[MailFolder], error) {
 	var result ListResponse[MailFolder]
 	if err := c.Get(ctx, "/me/mailFolders", &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// GetMailFolder gets a mail folder by ID or well-known name
-func (c *Client) GetMailFolder(ctx context.Context, folderID string) (*MailFolder, error) {
-	path := fmt.Sprintf("/me/mailFolders/%s", folderID)
-
-	var result MailFolder
-	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, err
 	}
 
