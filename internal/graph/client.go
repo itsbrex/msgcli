@@ -108,9 +108,9 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	if resp.StatusCode >= 400 {
 		var graphErr GraphError
 		if err := json.Unmarshal(respBody, &graphErr); err == nil && graphErr.Error.Code != "" {
-			return fmt.Errorf("Graph API error: %s", graphErr.String())
+			return fmt.Errorf("graph API error: %s", graphErr.String())
 		}
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("http %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	// Parse successful response

@@ -123,7 +123,7 @@ func loadLegacyToken(alias string) (*TokenData, error) {
 
 	item, err := kr.Get("token:" + alias)
 	if err != nil {
-		if err == keyring.ErrKeyNotFound {
+		if errors.Is(err, keyring.ErrKeyNotFound) {
 			return nil, fmt.Errorf("%w: run 'msgcli auth add %s --flow legacy' first", ErrAccountNotFound, alias)
 		}
 		return nil, err
@@ -170,7 +170,7 @@ func deleteLegacyToken(alias string) error {
 	}
 
 	if err := kr.Remove("token:" + alias); err != nil {
-		if err == keyring.ErrKeyNotFound {
+		if errors.Is(err, keyring.ErrKeyNotFound) {
 			return fmt.Errorf("%w: account '%s' not found", ErrAccountNotFound, alias)
 		}
 		return fmt.Errorf("remove token for %q: %w", alias, err)
@@ -184,7 +184,7 @@ func ListAccounts() ([]AccountInfo, error) {
 	firstPartyAccounts, firstPartyErr := ListFirstPartyAccounts()
 
 	if legacyErr != nil && firstPartyErr != nil {
-		return nil, fmt.Errorf("failed to list accounts: legacy=%v firstparty=%v", legacyErr, firstPartyErr)
+		return nil, fmt.Errorf("failed to list accounts: %w", errors.Join(legacyErr, firstPartyErr))
 	}
 
 	accountsByAlias := map[string]AccountInfo{}
