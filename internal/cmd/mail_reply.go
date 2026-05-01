@@ -52,7 +52,7 @@ func runMailReply(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("reply body is required")
 	}
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}

@@ -49,7 +49,7 @@ func runCalendarAvailability(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid end time: %w", err)
 	}
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}

@@ -127,7 +127,7 @@ func runBatch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no requests found on input")
 	}
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
