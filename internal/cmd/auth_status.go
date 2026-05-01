@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/spf13/cobra"
@@ -58,9 +59,11 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		if acc.Valid {
 			validStr = "yes"
 		}
-		expiry := acc.ExpiresAt
-		if expiry == "" {
+		var expiry string
+		if acc.ExpiresAt == 0 {
 			expiry = "unknown"
+		} else {
+			expiry = time.Unix(acc.ExpiresAt, 0).Local().Format("Jan 02 15:04 MST")
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", acc.Alias, acc.Flow, acc.Email, validStr, expiry)
 		if acc.Error != "" {
