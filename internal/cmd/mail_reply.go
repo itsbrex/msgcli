@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -37,25 +34,18 @@ func runMailReply(cmd *cobra.Command, args []string) error {
 	body := mailReplyBody
 
 	if mailReplyStdin {
-		var sb strings.Builder
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			sb.WriteString(scanner.Text())
-			sb.WriteString("\n")
-		}
-		if err := scanner.Err(); err != nil {
+		var err error
+		body, err = readBodyFromStdin()
+		if err != nil {
 			return fmt.Errorf("error reading stdin: %w", err)
 		}
-		body = strings.TrimSuffix(sb.String(), "\n")
 	} else if body == "" && !IsNoInput() {
 		Infof("Enter reply (Ctrl+D to finish):")
-		var sb strings.Builder
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			sb.WriteString(scanner.Text())
-			sb.WriteString("\n")
+		var err error
+		body, err = readBodyFromStdin()
+		if err != nil {
+			return fmt.Errorf("error reading stdin: %w", err)
 		}
-		body = strings.TrimSuffix(sb.String(), "\n")
 	}
 
 	if body == "" {

@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const graphDateTimeLayout = "2006-01-02T15:04:05"
+
 // Event represents an Outlook calendar event
 type Event struct {
 	ID                    string          `json:"id,omitempty"`
@@ -223,22 +225,24 @@ func (c *Client) DeleteEvent(ctx context.Context, eventID string) error {
 	return c.Delete(ctx, path)
 }
 
+// respondToEvent is the shared helper for accept/decline/tentativelyAccept.
+func (c *Client) respondToEvent(ctx context.Context, eventID, action, comment string, sendResponse bool) error {
+	return c.Post(ctx, fmt.Sprintf("/me/events/%s/%s", eventID, action), respondBody(comment, sendResponse), nil)
+}
+
 // AcceptEvent accepts a meeting invitation
-func (c *Client) AcceptEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
-	path := fmt.Sprintf("/me/events/%s/accept", eventID)
-	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
+func (c *Client) AcceptEvent(ctx context.Context, eventID, comment string, sendResponse bool) error {
+	return c.respondToEvent(ctx, eventID, "accept", comment, sendResponse)
 }
 
 // DeclineEvent declines a meeting invitation
-func (c *Client) DeclineEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
-	path := fmt.Sprintf("/me/events/%s/decline", eventID)
-	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
+func (c *Client) DeclineEvent(ctx context.Context, eventID, comment string, sendResponse bool) error {
+	return c.respondToEvent(ctx, eventID, "decline", comment, sendResponse)
 }
 
 // TentativelyAcceptEvent tentatively accepts a meeting
-func (c *Client) TentativelyAcceptEvent(ctx context.Context, eventID string, comment string, sendResponse bool) error {
-	path := fmt.Sprintf("/me/events/%s/tentativelyAccept", eventID)
-	return c.Post(ctx, path, respondBody(comment, sendResponse), nil)
+func (c *Client) TentativelyAcceptEvent(ctx context.Context, eventID, comment string, sendResponse bool) error {
+	return c.respondToEvent(ctx, eventID, "tentativelyAccept", comment, sendResponse)
 }
 
 // respondBody builds the Graph payload for accept/decline/tentativelyAccept.
@@ -263,8 +267,8 @@ func (c *Client) CancelEvent(ctx context.Context, eventID string, comment string
 func (c *Client) GetSchedule(ctx context.Context, emails []string, startTime, endTime time.Time) ([]ScheduleInfo, error) {
 	body := map[string]interface{}{
 		"schedules":                emails,
-		"startTime":                DateTimeZone{DateTime: startTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
-		"endTime":                  DateTimeZone{DateTime: endTime.Format("2006-01-02T15:04:05"), TimeZone: "UTC"},
+		"startTime":                DateTimeZone{DateTime: startTime.Format(graphDateTimeLayout), TimeZone: "UTC"},
+		"endTime":                  DateTimeZone{DateTime: endTime.Format(graphDateTimeLayout), TimeZone: "UTC"},
 		"availabilityViewInterval": 30,
 	}
 
@@ -284,7 +288,7 @@ func NewDateTimeZone(t time.Time, tz string) *DateTimeZone {
 		tz = "UTC"
 	}
 	return &DateTimeZone{
-		DateTime: t.Format("2006-01-02T15:04:05"),
+		DateTime: t.Format(graphDateTimeLayout),
 		TimeZone: tz,
 	}
 }
@@ -295,5 +299,5 @@ func (d *DateTimeZone) ToTime() (time.Time, error) {
 	if err != nil {
 		loc = time.UTC
 	}
-	return time.ParseInLocation("2006-01-02T15:04:05", d.DateTime, loc)
+	return time.ParseInLocation(graphDateTimeLayout, d.DateTime, loc)
 }
