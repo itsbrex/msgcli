@@ -308,19 +308,18 @@ func calendarRespondHandler(cf ClientFactory) ToolHandler {
 		if err != nil {
 			return ToolCallResult{}, err
 		}
-		var err2 error
 		switch p.Response {
 		case "accept":
-			err2 = client.AcceptEvent(ctx, p.ID, p.Comment, sendResp)
+			err = client.AcceptEvent(ctx, p.ID, p.Comment, sendResp)
 		case "decline":
-			err2 = client.DeclineEvent(ctx, p.ID, p.Comment, sendResp)
+			err = client.DeclineEvent(ctx, p.ID, p.Comment, sendResp)
 		case "tentative":
-			err2 = client.TentativelyAcceptEvent(ctx, p.ID, p.Comment, sendResp)
+			err = client.TentativelyAcceptEvent(ctx, p.ID, p.Comment, sendResp)
 		default:
 			return ToolCallResult{}, fmt.Errorf("unknown response %q: must be accept, decline, or tentative", p.Response)
 		}
-		if err2 != nil {
-			return ToolCallResult{}, err2
+		if err != nil {
+			return ToolCallResult{}, err
 		}
 		return okResult, nil
 	}
