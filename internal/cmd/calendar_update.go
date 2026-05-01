@@ -83,7 +83,7 @@ func runCalendarUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no updates specified - use --subject, --start, --end, --location, or --body")
 	}
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}

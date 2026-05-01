@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
@@ -30,6 +32,9 @@ and secure credential storage.`,
 }
 
 func Execute() error {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	rootCmd.SetContext(ctx)
 	return rootCmd.Execute()
 }
 
@@ -68,13 +73,13 @@ func Infof(format string, args ...interface{}) {
 }
 
 // newClientFromFlag resolves the account from the --account flag and returns
-// a graph client and background context ready for use.
-func newClientFromFlag() (*graph.Client, context.Context, error) {
+// a graph client and the command's context ready for use.
+func newClientFromFlag(cmd *cobra.Command) (*graph.Client, context.Context, error) {
 	account, err := auth.ResolveAccount(GetAccountFlag())
 	if err != nil {
 		return nil, nil, err
 	}
-	return graph.NewClient(account), context.Background(), nil
+	return graph.NewClient(account), cmd.Context(), nil
 }
 
 // writeJSON encodes v as indented JSON to stdout.

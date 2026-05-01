@@ -23,7 +23,7 @@ func init() {
 func runMailGet(cmd *cobra.Command, args []string) error {
 	messageID := args[0]
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}

@@ -34,7 +34,7 @@ func init() {
 }
 
 func runCalendarList(cmd *cobra.Command, args []string) error {
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}

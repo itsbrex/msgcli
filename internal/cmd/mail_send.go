@@ -72,7 +72,7 @@ func runMailSend(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("message body is required")
 	}
 
-	client, ctx, err := newClientFromFlag()
+	client, ctx, err := newClientFromFlag(cmd)
 	if err != nil {
 		return fmt.Errorf("resolve account: %w", err)
 	}
