@@ -28,44 +28,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
   "query":{"type":"string","description":"KQL search query (optional)"}
 }}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string `json:"account"`
-				Folder  string `json:"folder"`
-				Limit   int    `json:"limit"`
-				Query   string `json:"query"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			if p.Folder == "" {
-				p.Folder = "inbox"
-			}
-			if p.Limit == 0 {
-				p.Limit = 25
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			var result *graph.ListResponse[graph.Message]
-			if p.Query != "" {
-				result, err = client.SearchMessages(ctx, p.Query, p.Limit)
-			} else {
-				result, err = client.ListMessages(ctx, p.Folder, &graph.QueryParams{
-					Top:     p.Limit,
-					OrderBy: "receivedDateTime desc",
-					Select:  []string{"id", "subject", "from", "receivedDateTime", "isRead", "hasAttachments", "bodyPreview"},
-				})
-			}
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return jsonResult(result.Value)
-		},
+		Handler: mailListHandler(cf),
 	})
 
-	// mail_get
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_get",
@@ -78,27 +43,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 },
 "required":["id"]}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string `json:"account"`
-				ID      string `json:"id"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			msg, err := client.GetMessage(ctx, p.ID)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return jsonResult(msg)
-		},
+		Handler: mailGetHandler(cf),
 	})
 
-	// mail_send
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_send",
@@ -115,33 +62,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 },
 "required":["to","subject","body"]}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string   `json:"account"`
-				To      []string `json:"to"`
-				CC      []string `json:"cc"`
-				Subject string   `json:"subject"`
-				Body    string   `json:"body"`
-				IsHTML  bool     `json:"isHtml"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			if p.CC == nil {
-				p.CC = []string{}
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			if err := client.SendMail(ctx, p.To, p.CC, p.Subject, p.Body, p.IsHTML); err != nil {
-				return ToolCallResult{}, err
-			}
-			return okResult, nil
-		},
+		Handler: mailSendHandler(cf),
 	})
 
-	// mail_reply
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_reply",
@@ -156,33 +79,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 },
 "required":["id"]}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account  string `json:"account"`
-				ID       string `json:"id"`
-				Comment  string `json:"comment"`
-				ReplyAll bool   `json:"replyAll"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			if p.ReplyAll {
-				err = client.ReplyAllToMessage(ctx, p.ID, p.Comment)
-			} else {
-				err = client.ReplyToMessage(ctx, p.ID, p.Comment)
-			}
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return okResult, nil
-		},
+		Handler: mailReplyHandler(cf),
 	})
 
-	// mail_move
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_move",
@@ -196,28 +95,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 },
 "required":["id","folder"]}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string `json:"account"`
-				ID      string `json:"id"`
-				Folder  string `json:"folder"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			msg, err := client.MoveMessage(ctx, p.ID, p.Folder)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return jsonResult(msg)
-		},
+		Handler: mailMoveHandler(cf),
 	})
 
-	// mail_delete
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_delete",
@@ -230,26 +110,9 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 },
 "required":["id"]}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string `json:"account"`
-				ID      string `json:"id"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			if err := client.DeleteMessage(ctx, p.ID); err != nil {
-				return ToolCallResult{}, err
-			}
-			return okResult, nil
-		},
+		Handler: mailDeleteHandler(cf),
 	})
 
-	// mail_folders
 	r.Register(Tool{
 		Info: ToolInfo{
 			Name:        "mail_folders",
@@ -260,22 +123,181 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
   "account":{"type":"string","description":"Account alias (default: first configured)"}
 }}`),
 		},
-		Handler: func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
-			var p struct {
-				Account string `json:"account"`
-			}
-			if err := unmarshalArgs(args, &p); err != nil {
-				return ToolCallResult{}, err
-			}
-			client, err := cf(p.Account)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			result, err := client.ListMailFolders(ctx)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return jsonResult(result.Value)
-		},
+		Handler: mailFoldersHandler(cf),
 	})
+}
+
+func mailListHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string `json:"account"`
+			Folder  string `json:"folder"`
+			Limit   int    `json:"limit"`
+			Query   string `json:"query"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		if p.Folder == "" {
+			p.Folder = "inbox"
+		}
+		if p.Limit == 0 {
+			p.Limit = 25
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		var result *graph.ListResponse[graph.Message]
+		if p.Query != "" {
+			result, err = client.SearchMessages(ctx, p.Query, p.Limit)
+		} else {
+			result, err = client.ListMessages(ctx, p.Folder, &graph.QueryParams{
+				Top:     p.Limit,
+				OrderBy: "receivedDateTime desc",
+				Select:  []string{"id", "subject", "from", "receivedDateTime", "isRead", "hasAttachments", "bodyPreview"},
+			})
+		}
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		return jsonResult(result.Value)
+	}
+}
+
+func mailGetHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string `json:"account"`
+			ID      string `json:"id"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		msg, err := client.GetMessage(ctx, p.ID)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		return jsonResult(msg)
+	}
+}
+
+func mailSendHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string   `json:"account"`
+			To      []string `json:"to"`
+			CC      []string `json:"cc"`
+			Subject string   `json:"subject"`
+			Body    string   `json:"body"`
+			IsHTML  bool     `json:"isHtml"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		if p.CC == nil {
+			p.CC = []string{}
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		if err := client.SendMail(ctx, p.To, p.CC, p.Subject, p.Body, p.IsHTML); err != nil {
+			return ToolCallResult{}, err
+		}
+		return okResult, nil
+	}
+}
+
+func mailReplyHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account  string `json:"account"`
+			ID       string `json:"id"`
+			Comment  string `json:"comment"`
+			ReplyAll bool   `json:"replyAll"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		if p.ReplyAll {
+			err = client.ReplyAllToMessage(ctx, p.ID, p.Comment)
+		} else {
+			err = client.ReplyToMessage(ctx, p.ID, p.Comment)
+		}
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		return okResult, nil
+	}
+}
+
+func mailMoveHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string `json:"account"`
+			ID      string `json:"id"`
+			Folder  string `json:"folder"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		msg, err := client.MoveMessage(ctx, p.ID, p.Folder)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		return jsonResult(msg)
+	}
+}
+
+func mailDeleteHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string `json:"account"`
+			ID      string `json:"id"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		if err := client.DeleteMessage(ctx, p.ID); err != nil {
+			return ToolCallResult{}, err
+		}
+		return okResult, nil
+	}
+}
+
+func mailFoldersHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account string `json:"account"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		result, err := client.ListMailFolders(ctx)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		return jsonResult(result.Value)
+	}
 }
