@@ -33,10 +33,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				End     string `json:"end"`
 				Limit   int    `json:"limit"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			if p.Limit == 0 {
 				p.Limit = 25
@@ -64,11 +62,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(result.Value)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(result.Value)
 		},
 	})
 
@@ -90,10 +84,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				Account string `json:"account"`
 				ID      string `json:"id"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -103,11 +95,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(event)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(event)
 		},
 	})
 
@@ -139,10 +127,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				Body      string   `json:"body"`
 				Attendees []string `json:"attendees"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			startTime, err := time.Parse(time.RFC3339, p.Start)
 			if err != nil {
@@ -181,11 +167,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(created)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(created)
 		},
 	})
 
@@ -209,10 +191,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				ID      string                 `json:"id"`
 				Updates map[string]interface{} `json:"updates"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -222,11 +202,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(updated)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(updated)
 		},
 	})
 
@@ -248,10 +224,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				Account string `json:"account"`
 				ID      string `json:"id"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			client, err := cf(p.Account)
 			if err != nil {
@@ -260,7 +234,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err := client.DeleteEvent(ctx, p.ID); err != nil {
 				return ToolCallResult{}, err
 			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: `{"ok":true}`}}}, nil
+			return okResult, nil
 		},
 	})
 
@@ -288,10 +262,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				Comment      string `json:"comment"`
 				SendResponse *bool  `json:"sendResponse"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			sendResp := true
 			if p.SendResponse != nil {
@@ -314,7 +286,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: `{"ok":true}`}}}, nil
+			return okResult, nil
 		},
 	})
 
@@ -340,10 +312,8 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 				Start   string   `json:"start"`
 				End     string   `json:"end"`
 			}
-			if len(args) > 0 {
-				if err := json.Unmarshal(args, &p); err != nil {
-					return ToolCallResult{}, err
-				}
+			if err := unmarshalArgs(args, &p); err != nil {
+				return ToolCallResult{}, err
 			}
 			startTime, err := time.Parse(time.RFC3339, p.Start)
 			if err != nil {
@@ -361,11 +331,7 @@ func RegisterCalendarTools(r *Registry, cf ClientFactory) {
 			if err != nil {
 				return ToolCallResult{}, err
 			}
-			body, err := json.Marshal(schedules)
-			if err != nil {
-				return ToolCallResult{}, err
-			}
-			return ToolCallResult{Content: []ToolContent{{Type: "text", Text: string(body)}}}, nil
+			return jsonResult(schedules)
 		},
 	})
 }
