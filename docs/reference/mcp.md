@@ -33,7 +33,7 @@ The Model Context Protocol (MCP) is an open standard that allows AI clients to c
 |------|-------------|----------|
 | mail_list | List email messages from a folder (default: inbox, last 25) | account, folder, limit, query |
 | mail_get | Get a single email message by ID | account, id |
-| mail_send | Send an email message | account, to, subject, body, cc |
+| mail_send | Send an email message | account, to, subject, body, cc, isHtml |
 | mail_reply | Reply to an email message | account, id, comment, replyAll |
 | mail_move | Move an email message to a different folder | account, id, folder |
 | mail_delete | Delete an email message | account, id |
@@ -43,7 +43,7 @@ The Model Context Protocol (MCP) is an open standard that allows AI clients to c
 | calendar_create | Create a new calendar event | account, subject, start, end, attendees, location, body |
 | calendar_update | Update an existing calendar event | account, id, updates |
 | calendar_delete | Delete a calendar event | account, id |
-| calendar_respond | Respond to a calendar event invitation | account, id, response, comment |
+| calendar_respond | Respond to a calendar event invitation | account, id, response, comment, sendResponse |
 | calendar_availability | Get free/busy schedule information for a set of email addresses | account, emails, start, end |
 | auth_list | List all configured accounts (alias, email, flow) | (none) |
 | auth_status | Show auth configuration and per-account token validity | account |
@@ -72,4 +72,4 @@ Should output JSON with `result.tools` array. If you see an error, it is in the 
 Errors appear in-band in the MCP response with `isError: true` and error text in the `content` field. Check the message for details (e.g., "account not found", "message not found").
 
 **Tokens expired or invalid?**
-Run `msgcli auth refresh <alias>` from a terminal to force a token refresh. This does not revoke existing tokens; it refreshes them with Microsoft's servers.
+`msgcli mcp serve` auto-refreshes every configured account at startup, so a Claude Code restart is usually enough to recover from staleness. If a refresh token itself has been revoked (password change, conditional-access policy), run `msgcli auth refresh <alias>` from a terminal — and if that fails, `msgcli auth add <alias>` to re-enroll. Set `MSGCLI_DISABLE_WARMUP=1` if you need to launch the server without network access.

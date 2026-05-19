@@ -2,7 +2,7 @@
 
 > Agent-first CLI for Microsoft Outlook Mail & Calendar
 
-[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **msgcli** is a fast, script-friendly command-line interface for Microsoft Graph API. Built for AI agents and automation, inspired by [gogcli](https://github.com/steipete/gogcli).
@@ -237,6 +237,7 @@ msgcli auth status
 | `MSGCLI_CLIENT_ID` | Azure client ID (alternative to `auth setup`) |
 | `MSGCLI_AUTH_FLOW` | Default auth flow override (`legacy` or `msal-office`) |
 | `MSGCLI_KEYRING_PASSWORD` | Keyring password for headless/CI environments |
+| `MSGCLI_DISABLE_WARMUP` | Skip the startup auto-refresh (offline use, faster `--help`) |
 
 ## Building
 
@@ -253,7 +254,8 @@ make release    # Cross-compile for all platforms
    - **Legacy**: custom Azure app + keyring token storage
    - **msal-office**: first-party client + macOS OneAuth tenant discovery + secure token files
 2. **API**: Direct Microsoft Graph API calls with automatic token refresh
-3. **Output**: JSON for machines, tables for humans (auto-detected based on TTY)
+3. **Auto-refresh on startup**: Every CLI invocation (and `mcp serve`) warms stored tokens in the background. Fresh tokens are a no-op; stale ones refresh before the command runs. Disable with `MSGCLI_DISABLE_WARMUP=1`.
+4. **Output**: JSON for machines, tables for humans (auto-detected based on TTY)
 
 ## Contributing
 
