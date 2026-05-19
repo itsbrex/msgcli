@@ -2,10 +2,26 @@ package mcp
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"mime"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/skylarbpayne/msgcli/internal/graph"
 )
+
+// detectAttachmentContentType returns a MIME type for the file, preferring the
+// extension and falling back to content sniffing.
+func detectAttachmentContentType(path string, data []byte) string {
+	if ct := mime.TypeByExtension(filepath.Ext(path)); ct != "" {
+		return strings.SplitN(ct, ";", 2)[0]
+	}
+	return http.DetectContentType(data)
+}
 
 // ClientFactory returns a graph.Client for the given account alias
 // (empty string = default / first configured).
@@ -63,6 +79,38 @@ func RegisterMailTools(r *Registry, cf ClientFactory) {
 "required":["to","subject","body"]}`),
 		},
 		Handler: mailSendHandler(cf),
+	})
+
+	r.Register(Tool{
+		Info: ToolInfo{
+			Name:        "mail_draft_create",
+			Description: "Create a draft email message, optionally with attachments. Attachments may be provided as local file paths or inline base64 content. Each attachment must be under 3MB.",
+			InputSchema: json.RawMessage(`{
+"type":"object",
+"properties":{
+  "account":{"type":"string","description":"Account alias (default: first configured)"},
+  "to":{"type":"array","items":{"type":"string"}},
+  "cc":{"type":"array","items":{"type":"string"}},
+  "bcc":{"type":"array","items":{"type":"string"}},
+  "subject":{"type":"string"},
+  "body":{"type":"string"},
+  "isHtml":{"type":"boolean","default":false},
+  "attachments":{
+    "type":"array",
+    "description":"Files to attach. Each item must have either path OR contentBase64.",
+    "items":{
+      "type":"object",
+      "properties":{
+        "path":{"type":"string","description":"Local file path to read (mutually exclusive with contentBase64)"},
+        "name":{"type":"string","description":"Attachment filename (defaults to path basename)"},
+        "contentType":{"type":"string","description":"MIME type (auto-detected if omitted)"},
+        "contentBase64":{"type":"string","description":"Base64-encoded file content (mutually exclusive with path)"}
+      }
+    }
+  }
+}}`),
+		},
+		Handler: mailDraftCreateHandler(cf),
 	})
 
 	r.Register(Tool{
@@ -210,6 +258,76 @@ func mailSendHandler(cf ClientFactory) ToolHandler {
 			return ToolCallResult{}, err
 		}
 		return okResult, nil
+	}
+}
+
+func mailDraftCreateHandler(cf ClientFactory) ToolHandler {
+	return func(ctx context.Context, args json.RawMessage) (ToolCallResult, error) {
+		var p struct {
+			Account     string   `json:"account"`
+			To          []string `json:"to"`
+			CC          []string `json:"cc"`
+			BCC         []string `json:"bcc"`
+			Subject     string   `json:"subject"`
+			Body        string   `json:"body"`
+			IsHTML      bool     `json:"isHtml"`
+			Attachments []struct {
+				Path          string `json:"path"`
+				Name          string `json:"name"`
+				ContentType   string `json:"contentType"`
+				ContentBase64 string `json:"contentBase64"`
+			} `json:"attachments"`
+		}
+		if err := unmarshalArgs(args, &p); err != nil {
+			return ToolCallResult{}, err
+		}
+		client, err := cf(p.Account)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		draft, err := client.CreateDraft(ctx, p.To, p.CC, p.BCC, p.Subject, p.Body, p.IsHTML)
+		if err != nil {
+			return ToolCallResult{}, err
+		}
+		for i, a := range p.Attachments {
+			var data []byte
+			name := a.Name
+			ctype := a.ContentType
+			switch {
+			case a.Path != "" && a.ContentBase64 != "":
+				return ToolCallResult{}, fmt.Errorf("attachment %d: specify path OR contentBase64, not both", i)
+			case a.Path != "":
+				b, err := os.ReadFile(a.Path)
+				if err != nil {
+					return ToolCallResult{}, fmt.Errorf("attachment %d: read %q: %w", i, a.Path, err)
+				}
+				data = b
+				if name == "" {
+					name = filepath.Base(a.Path)
+				}
+				if ctype == "" {
+					ctype = detectAttachmentContentType(a.Path, data)
+				}
+			case a.ContentBase64 != "":
+				b, err := base64.StdEncoding.DecodeString(a.ContentBase64)
+				if err != nil {
+					return ToolCallResult{}, fmt.Errorf("attachment %d: invalid base64: %w", i, err)
+				}
+				data = b
+				if name == "" {
+					return ToolCallResult{}, fmt.Errorf("attachment %d: name is required when using contentBase64", i)
+				}
+				if ctype == "" {
+					ctype = http.DetectContentType(data)
+				}
+			default:
+				return ToolCallResult{}, fmt.Errorf("attachment %d: must specify either path or contentBase64", i)
+			}
+			if err := client.AddAttachment(ctx, draft.ID, name, ctype, data); err != nil {
+				return ToolCallResult{}, err
+			}
+		}
+		return jsonResult(draft)
 	}
 }
 
