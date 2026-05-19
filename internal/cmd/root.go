@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/skylarbpayne/msgcli/internal/auth"
 	"github.com/skylarbpayne/msgcli/internal/graph"
@@ -21,6 +22,9 @@ var (
 	noInputFlag bool
 )
 
+// EnvDisableWarmup turns off the startup auto-refresh, e.g. for offline use.
+const EnvDisableWarmup = "MSGCLI_DISABLE_WARMUP"
+
 var rootCmd = &cobra.Command{
 	Use:   "msgcli",
 	Short: "Agent-first CLI for Microsoft Outlook Mail and Calendar",
@@ -29,6 +33,40 @@ focused on Outlook Mail and Calendar operations.
 
 Designed for AI agents with JSON-first output, multi-account support,
 and secure credential storage.`,
+	PersistentPreRun: autoRefreshPreRun,
+}
+
+// commandsSkippingWarmup lists fully-qualified command paths that must not
+// trigger a startup token refresh (auth management, install helpers, etc.).
+var commandsSkippingWarmup = map[string]bool{
+	"msgcli auth setup":   true,
+	"msgcli auth add":     true,
+	"msgcli auth remove":  true,
+	"msgcli auth refresh": true,
+	"msgcli mcp install":  true,
+	"msgcli help":         true,
+	"msgcli completion":   true,
+}
+
+func autoRefreshPreRun(cmd *cobra.Command, _ []string) {
+	if os.Getenv(EnvDisableWarmup) != "" {
+		return
+	}
+	path := cmd.CommandPath()
+	for skip := range commandsSkippingWarmup {
+		if path == skip || strings.HasPrefix(path, skip+" ") {
+			return
+		}
+	}
+	if err := auth.EnsureConfig(); err != nil {
+		Infof("Warning: bootstrap config: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+	defer cancel()
+	results := auth.WarmupAccounts(ctx)
+	if msg := auth.FormatWarmupErrors(results); msg != "" {
+		Infof("Warning: %s", msg)
+	}
 }
 
 func Execute() error {
