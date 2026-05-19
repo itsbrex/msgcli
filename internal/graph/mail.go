@@ -2,9 +2,15 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"net/mail"
 	"time"
 )
+
+// MaxDirectAttachmentBytes is the size limit for a single-shot attachment POST.
+// Files larger than ~3MB require an upload session (not yet implemented).
+const MaxDirectAttachmentBytes = 3 * 1024 * 1024
 
 // Message represents an Outlook email message
 type Message struct {
@@ -165,6 +171,71 @@ func (c *Client) ListMailFolders(ctx context.Context) (*ListResponse[MailFolder]
 	}
 
 	return &result, nil
+}
+
+// parseRecipient accepts either a plain email address ("user@example.com") or
+// an RFC 5322 mailbox with a display name ("Brian Roach <broach@cresa.com>")
+// and returns the corresponding Recipient. Malformed input falls back to a
+// plain-address recipient.
+func parseRecipient(s string) Recipient {
+	if addr, err := mail.ParseAddress(s); err == nil {
+		return Recipient{EmailAddress: EmailAddress{Name: addr.Name, Address: addr.Address}}
+	}
+	return Recipient{EmailAddress: EmailAddress{Address: s}}
+}
+
+// CreateDraft creates a draft message in the Drafts folder and returns the created message.
+func (c *Client) CreateDraft(ctx context.Context, to, cc, bcc []string, subject, body string, isHTML bool) (*Message, error) {
+	contentType := "text"
+	if isHTML {
+		contentType = "html"
+	}
+
+	mkRecipients := func(addrs []string) []Recipient {
+		out := make([]Recipient, 0, len(addrs))
+		for _, a := range addrs {
+			out = append(out, parseRecipient(a))
+		}
+		return out
+	}
+
+	draft := Message{
+		Subject:       subject,
+		Body:          &ItemBody{ContentType: contentType, Content: body},
+		ToRecipients:  mkRecipients(to),
+		CcRecipients:  mkRecipients(cc),
+		BccRecipients: mkRecipients(bcc),
+	}
+
+	var result Message
+	if err := c.Post(ctx, "/me/messages", draft, &result); err != nil {
+		return nil, fmt.Errorf("create draft: %w", err)
+	}
+	return &result, nil
+}
+
+// AddAttachment attaches a file to an existing message (draft).
+// data must be smaller than MaxDirectAttachmentBytes; larger files require an
+// upload session, which is not yet implemented.
+func (c *Client) AddAttachment(ctx context.Context, messageID, name, contentType string, data []byte) error {
+	if len(data) > MaxDirectAttachmentBytes {
+		return fmt.Errorf("attachment %q is %d bytes; exceeds direct upload limit of %d bytes (upload sessions not yet supported)", name, len(data), MaxDirectAttachmentBytes)
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	path := fmt.Sprintf("/me/messages/%s/attachments", messageID)
+	body := map[string]string{
+		"@odata.type":  "#microsoft.graph.fileAttachment",
+		"name":         name,
+		"contentType":  contentType,
+		"contentBytes": base64.StdEncoding.EncodeToString(data),
+	}
+	if err := c.Post(ctx, path, body, nil); err != nil {
+		return fmt.Errorf("add attachment %q: %w", name, err)
+	}
+	return nil
 }
 
 // SearchMessages searches messages using KQL
